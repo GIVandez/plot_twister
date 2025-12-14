@@ -6,6 +6,7 @@ from fastapi import FastAPI, Body, status
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from server.database.base import *
 
 # запуск сервера
 # uv run uvicorn main:app --reload
