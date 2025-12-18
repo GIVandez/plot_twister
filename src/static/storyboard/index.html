@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frame API</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { margin: 5px; padding: 10px; cursor: pointer; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Frame API Test</h1>
+    
+    <div class="section">
+        <h3>1. Load Frames (GET)</h3>
+        <input type="number" id="projectId" placeholder="Project ID" value="1">
+        <button onclick="loadFrames()">Load Frames</button>
+    </div>
+    
+    <div class="section">
+        <h3>2. Create New Frame (POST)</h3>
+        <input type="number" id="newProjectId" placeholder="Project ID" value="1"><br>
+        <input type="text" id="description" placeholder="Description" value="Test frame"><br>
+        <input type="number" id="startTime" placeholder="Start Time" value="0"><br>
+        <input type="number" id="endTime" placeholder="End Time" value="1000"><br>
+        <button onclick="newFrame()">Create Frame</button>
+    </div>
+    
+    <div class="section">
+        <h3>3. Drag & Drop Frame (POST)</h3>
+        <input type="number" id="dragFrameId" placeholder="Frame ID" value="1"><br>
+        <input type="number" id="newPosition" placeholder="New Position" value="2"><br>
+        <button onclick="dragDrop()">Move Frame</button>
+    </div>
+    
+    <div class="section">
+        <h3>4. Update Times (POST)</h3>
+        <input type="number" id="timeFrameId" placeholder="Frame ID" value="1"><br>
+        <input type="number" id="newStartTime" placeholder="Start Time" value="500">
+        <button onclick="updateStartTime()">Update Start</button><br>
+        <input type="number" id="newEndTime" placeholder="End Time" value="1500">
+        <button onclick="updateEndTime()">Update End</button>
+    </div>
+    
+    <div class="section">
+        <h3>5. Update Description (POST)</h3>
+        <input type="number" id="descFrameId" placeholder="Frame ID" value="1"><br>
+        <input type="text" id="newDescription" placeholder="New Description" value="Updated description"><br>
+        <button onclick="updateDescription()">Update Description</button>
+    </div>
+    
+    <div class="section">
+        <h3>6. Delete Frame (DELETE)</h3>
+        <input type="number" id="deleteFrameId" placeholder="Frame ID" value="1"><br>
+        <button onclick="deleteFrame()" style="background-color:#ff4444;color:white;">Delete Frame</button>
+    </div>
+    
+    <div class="section">
+        <h3>7. Upload Image (POST with FormData)</h3>
+        <input type="number" id="uploadFrameId" placeholder="Frame ID" value="1"><br>
+        <input type="file" id="imageFile"><br>
+        <button onclick="uploadImage()">Upload Image</button>
+    </div>
+    
+    <div class="section">
+        <h3>8. Delete Image (DELETE)</h3>
+        <input type="number" id="deleteImageFrameId" placeholder="Frame ID" value="1"><br>
+        <button onclick="deleteImage()" style="background-color:#ff4444;color:white;">Delete Image</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        async function makeRequest(method, url, data = null) {
+            console.log(`\n=== ${method} ${url} ===`);
+            
+            const options = {
+                method,
+                headers: {}
+            };
+            
+            if (data && !(data instanceof FormData)) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(data);
+            } else if (data instanceof FormData) {
+                options.body = data;
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                const result = await response.json();
+                console.log('Response:', result);
+                console.log('Status:', response.status);
+                return result;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // 1. Load frames
+        function loadFrames() {
+            const projectId = document.getElementById('projectId').value;
+            makeRequest('GET', `${API_BASE}/api/frame/${projectId}/loadFrames`);
+        }
+        
+        // 2. Create new frame
+        function newFrame() {
+            const data = {
+                project_id: parseInt(document.getElementById('newProjectId').value),
+                description: document.getElementById('description').value,
+                start_time: parseInt(document.getElementById('startTime').value),
+                end_time: parseInt(document.getElementById('endTime').value),
+                connected_page_id: null
+            };
+            makeRequest('POST', `${API_BASE}/api/frame/newFrame`, data);
+        }
+        
+        // 3. Drag and drop
+        function dragDrop() {
+            const data = {
+                frame_id: parseInt(document.getElementById('dragFrameId').value),
+                frame_number: parseInt(document.getElementById('newPosition').value)
+            };
+            makeRequest('POST', `${API_BASE}/api/frame/dragAndDropFrame`, data);
+        }
+        
+        // 4. Update start time
+        function updateStartTime() {
+            const data = {
+                frame_id: parseInt(document.getElementById('timeFrameId').value),
+                start_time: parseInt(document.getElementById('newStartTime').value)
+            };
+            makeRequest('POST', `${API_BASE}/api/frame/redoStartTime`, data);
+        }
+        
+        // 5. Update end time
+        function updateEndTime() {
+            const data = {
+                frame_id: parseInt(document.getElementById('timeFrameId').value),
+                end_time: parseInt(document.getElementById('newEndTime').value)
+            };
+            makeRequest('POST', `${API_BASE}/api/frame/redoEndTime`, data);
+        }
+        
+        // 6. Update description
+        function updateDescription() {
+            const data = {
+                frame_id: parseInt(document.getElementById('descFrameId').value),
+                description: document.getElementById('newDescription').value
+            };
+            makeRequest('POST', `${API_BASE}/api/frame/redoDescription`, data);
+        }
+        
+        // 7. Delete frame
+        function deleteFrame() {
+            const data = {
+                frame_id: parseInt(document.getElementById('deleteFrameId').value)
+            };
+            makeRequest('DELETE', `${API_BASE}/api/frame/deleteFrame`, data);
+        }
+        
+        // 8. Upload image
+        function uploadImage() {
+            const frameId = document.getElementById('uploadFrameId').value;
+            const fileInput = document.getElementById('imageFile');
+            
+            if (!fileInput.files[0]) {
+                console.log('No file selected');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('frame_id', frameId);
+            formData.append('picture', fileInput.files[0]);
+            
+            console.log(`\n=== POST /api/frame/uploadImage ===`);
+            console.log('FormData:', formData);
+            
+            makeRequest('POST', `${API_BASE}/api/frame/uploadImage`, formData);
+        }
+        
+        // 9. Delete image
+        function deleteImage() {
+            const data = {
+                frame_id: parseInt(document.getElementById('deleteImageFrameId').value)
+            };
+            makeRequest('DELETE', `${API_BASE}/api/graphic/deleteImage`, data);
+        }
+        
+        console.log('Frame API Test Page Loaded');
+        console.log('Use browser console (F12) to see results');
+    </script>
+</body>
+</html>

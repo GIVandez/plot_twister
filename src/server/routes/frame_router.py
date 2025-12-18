@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Path, UploadFile, File, Form, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 
 from fastapi import APIRouter
 
@@ -57,9 +57,6 @@ async def redo_start_time(request: RedoStartTimeRequest):
     return {"success": True, "frame_id": request.frame_id}
 
 
-
-
-'''
 @router.post("/api/frame/dragAndDropFrame")
 async def drag_and_drop_frame(request: DragAndDropFrameRequest):
     return {"success": True, "frame_id": request.frame_id}
@@ -101,9 +98,7 @@ async def upload_image(frame_id: int = Form(...), picture: UploadFile = File(...
     return {"success": True, "frame_id": frame_id, "filename": picture.filename}
 
 
-# Инициализация
-frame_model = FrameModel(router)
 
-
-
-'''
+@router.get("/")
+async def load_start_page():
+    return FileResponse(path="static/storyboard/index.html")
