@@ -62,4 +62,4 @@ async def load_page(page_id: int):
 
 @router.get("/page_test")
 async def load_start_page():
-    return FileResponse(path="static/script/index.html")
+    return FileResponse(path="static/script/api_test.html")

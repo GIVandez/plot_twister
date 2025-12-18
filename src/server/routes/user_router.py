@@ -62,4 +62,4 @@ async def delete_project(request: DeleteProjectRequest):
 
 @router.get("/user_test")
 async def load_start_page():
-    return FileResponse(path="static/account/index.html")
+    return FileResponse(path="static/account/api_test.html")

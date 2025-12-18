@@ -121,4 +121,4 @@ async def upload_image(frame_id: int = Form(...), picture: UploadFile = File(...
 
 @router.get("/frame_test")
 async def load_start_page():
-    return FileResponse(path="static/storyboard/index.html")
+    return FileResponse(path="static/storyboard/api_test.html")

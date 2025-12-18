@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin API Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { margin: 5px; padding: 10px; cursor: pointer; }
+        .section { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        input { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>👑 Admin API Tests</h1>
+    
+    <div class="section">
+        <h3>1. Load Users Accounts (GET)</h3>
+        <button onclick="loadUsers()">👥 Load All Users</button>
+    </div>
+    
+    <div class="section">
+        <h3>2. Admin Operations</h3>
+        Login: <input type="text" id="userLogin" value="testuser"><br>
+        <button onclick="upgradeAccount()">⬆️ Upgrade to Admin</button>
+        <button onclick="dropAdmin()">⬇️ Drop Admin Role</button>
+        <button onclick="deleteUser()" style="background-color:#ff4444;color:white;">🗑️ Delete User</button>
+    </div>
+    
+    <div class="section">
+        <h3>3. Project Operations (Admin)</h3>
+        Project ID: <input type="number" id="adminProjectId" value="1"><br>
+        <button onclick="deleteAdminProject()" style="background-color:#ff4444;color:white;">🗑️ Delete Project (Admin)</button>
+    </div>
+    
+    <div class="section">
+        <h3>4. Save Graphic Image</h3>
+        Frame ID: <input type="number" id="saveFrameId" value="1"><br>
+        <input type="file" id="graphicImage" accept="image/*"><br>
+        <button onclick="saveGraphicImage()">💾 Save Graphic</button>
+    </div>
+    
+    <div id="result" style="margin-top:20px;padding:10px;background:#f0f0f0;"></div>
+    
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function makeRequest(method, endpoint, data = null, isFormData = false) {
+            console.log(`\n=== ${method} ${endpoint} ===`);
+            
+            const options = {
+                method,
+                headers: {}
+            };
+            
+            if (data) {
+                if (isFormData) {
+                    options.body = data;
+                } else {
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(data);
+                }
+            }
+            
+            try {
+                const response = await fetch(API_BASE + endpoint, options);
+                console.log('Status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error: ${response.status} - ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Response:', result);
+                
+                // Отображаем результат на странице
+                document.getElementById('result').innerHTML = 
+                    `<pre>${method} ${endpoint}\nStatus: ${response.status}\n${JSON.stringify(result, null, 2)}</pre>`;
+                
+                return result;
+            } catch (error) {
+                console.error('Error:', error.message);
+                document.getElementById('result').innerHTML = 
+                    `<div style="color:red;">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function loadUsers() {
+            makeRequest('GET', '/api/admin/user/loadUsersAccounts');
+        }
+        
+        function upgradeAccount() {
+            const login = document.getElementById('userLogin').value;
+            makeRequest('POST', '/api/admin/user/upgradeAccount', { login });
+        }
+        
+        function dropAdmin() {
+            const login = document.getElementById('userLogin').value;
+            makeRequest('DELETE', '/api/admin/dropAdmin', { login });
+        }
+        
+        function deleteUser() {
+            const login = document.getElementById('userLogin').value;
+            makeRequest('DELETE', '/api/admin/user/deleteAccount', { login });
+        }
+        
+        function deleteAdminProject() {
+            const projectId = document.getElementById('adminProjectId').value;
+            makeRequest('DELETE', '/api/admin/project/deleteProject', { project_id: parseInt(projectId) });
+        }
+        
+        function saveGraphicImage() {
+            const frameId = document.getElementById('saveFrameId').value;
+            const fileInput = document.getElementById('graphicImage');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('frame_id', frameId);
+            formData.append('picture', fileInput.files[0]);
+            
+            console.log('Uploading file:', fileInput.files[0].name);
+            makeRequest('POST', '/api/graphic/saveImage', formData, true);
+        }
+        
+        console.log('Admin API Test Page Loaded');
+        console.log('API Base URL:', API_BASE);
+    </script>
+</body>
+</html>
