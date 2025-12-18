@@ -1,1 +1,48 @@
-aaa
+<!DOCTYPE html>
+<html>
+<head><title>User API Test</title></head>
+<body>
+    <h1>👤 User & Project API Tests</h1>
+    
+    <div style="margin: 20px 0;">
+        <button onclick="test('GET', '/api/users/testuser/loadInfo')">👤 Load User Info</button>
+        <button onclick="test('POST', '/api/user/createProject', {name:'Новый проект',login:'user1'})">➕ Create Project</button>
+        <button onclick="test('POST', '/api/user/updateProjectInfo', {project_id:1,name:'Обновленное название'})">✏️ Update Project</button>
+        <button onclick="test('DELETE', '/api/user/deleteUser', {login:'user1'})">🗑️ Delete User</button>
+        <button onclick="test('DELETE', '/api/user/deleteProject', {project_id:1})">🗑️ Delete Project</button>
+    </div>
+    
+    <div id="result" style="padding:10px;background:#f0f0f0;min-height:100px;"></div>
+    
+    <script>
+        const BASE = window.location.origin;
+        
+        async function test(method, endpoint, data) {
+            console.log(`${method} ${endpoint}`, data || '');
+            
+            const options = {
+                method,
+                headers: {'Content-Type': 'application/json'}
+            };
+            
+            if (data) options.body = JSON.stringify(data);
+            
+            try {
+                const res = await fetch(BASE + endpoint, options);
+                const result = await res.json();
+                
+                document.getElementById('result').innerHTML = 
+                    `<pre>${method} ${endpoint}\nStatus: ${res.status}\n${JSON.stringify(result, null, 2)}</pre>`;
+                
+                console.log('Response:', result);
+            } catch(e) {
+                document.getElementById('result').innerHTML = 
+                    `<div style="color:red;">Error: ${e.message}</div>`;
+                console.error('Error:', e);
+            }
+        }
+        
+        console.log('Ready! Click buttons to test User API');
+    </script>
+</body>
+</html>

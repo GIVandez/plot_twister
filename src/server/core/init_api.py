@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from server.routes import admin_router, frame_router, graphic_editor_router, page_router, project_router
+from server.routes import admin_router, frame_router, graphic_editor_router, page_router, project_router, user_router
 
 # запуск сервера
 # uv run uvicorn main:app --reload
@@ -29,3 +29,4 @@ app.include_router(frame_router.router)
 app.include_router(graphic_editor_router.router)
 app.include_router(page_router.router)
 app.include_router(project_router.router)
+app.include_router(user_router.router)
