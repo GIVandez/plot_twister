@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Path, UploadFile, File, Form, status
-from fastapi.responses import JSONResponse, FileResponse
+from typing import Optional
+from fastapi import UploadFile, File, Form
+from fastapi.responses import FileResponse
 
 from fastapi import APIRouter
 
@@ -68,7 +68,7 @@ async def load_frames(project_id: int):
             frame_id=1,
             description="Кадр 1",
             start_time=0,
-            end_time=1000,
+            end_time=73,
             pic_path="/path/to/image.jpg",
             connected="",
             number=1
@@ -79,7 +79,7 @@ async def load_frames(project_id: int):
 
 @router.post("/api/frame/redoEndTime")
 async def redo_end_time(request: RedoEndTimeRequest):
-    return {"success": True, "frame_id": request.frame_id}
+    return {"success": True}
 
 @router.post("/api/frame/newFrame", status_code=201)
 async def new_frame(request: NewFrameRequest):
@@ -87,15 +87,15 @@ async def new_frame(request: NewFrameRequest):
 
 @router.delete("/api/frame/deleteFrame")
 async def delete_frame(request: DeleteFrameRequest):
-    return {"success": True, "frame_id": request.frame_id}
+    return {"success": True}
 
 @router.post("/api/frame/redoDescription")
 async def redo_description(request: RedoDescriptionRequest):
-    return {"success": True, "frame_id": request.frame_id}
+    return {"success": True}
 
 @router.post("/api/frame/uploadImage")
 async def upload_image(frame_id: int = Form(...), picture: UploadFile = File(...)):
-    return {"success": True, "frame_id": frame_id, "filename": picture.filename}
+    return {"success": True}
 
 
 
