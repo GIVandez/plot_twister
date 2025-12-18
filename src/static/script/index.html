@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Page API Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { margin: 5px; padding: 10px; cursor: pointer; }
+        .section { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        input, textarea { margin: 5px; padding: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Page API Test</h1>
+    
+    <div class="section">
+        <h3>1. Load Pages (GET)</h3>
+        Project ID: <input type="number" id="projectId" value="1">
+        <button onclick="loadPages()">Load Pages</button>
+    </div>
+    
+    <div class="section">
+        <h3>2. Create New Page (POST)</h3>
+        <button onclick="newPage()">Create New Page</button>
+    </div>
+    
+    <div class="section">
+        <h3>3. Load Single Page (GET)</h3>
+        Page ID: <input type="number" id="loadPageId" value="1">
+        <button onclick="loadSinglePage()">Load Page Text</button>
+    </div>
+    
+    <div class="section">
+        <h3>4. Edit Page (POST)</h3>
+        Page ID: <input type="number" id="editPageId" value="1"><br>
+        New Text: <textarea id="pageText" rows="3">Новый текст страницы...</textarea><br>
+        <button onclick="editPage()">Update Page</button>
+    </div>
+    
+    <div class="section">
+        <h3>5. Delete Page (DELETE)</h3>
+        Page ID: <input type="number" id="deletePageId" value="1">
+        <button onclick="deletePage()" style="background-color:#ff4444;color:white;">Delete Page</button>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin; // http://127.0.0.1:8000
+        
+        async function makeRequest(method, url, data = null) {
+            console.log(`\n=== ${method} ${url} ===`);
+            if (data) console.log('Data:', data);
+            
+            const options = {
+                method,
+                headers: {}
+            };
+            
+            if (data) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                console.log('Status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, text: ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Response:', result);
+                return result;
+            } catch (error) {
+                console.error('Error:', error.message);
+            }
+        }
+        
+        // 1. Load pages for project
+        function loadPages() {
+            const projectId = document.getElementById('projectId').value;
+            makeRequest('GET', `${API_BASE}/api/page/${projectId}/loadPages`);
+        }
+        
+        // 2. Create new page
+        function newPage() {
+            makeRequest('POST', `${API_BASE}/api/page/newPage`);
+        }
+        
+        // 3. Load single page text
+        function loadSinglePage() {
+            const pageId = document.getElementById('loadPageId').value;
+            makeRequest('GET', `${API_BASE}/api/page/${pageId}/loadPage`);
+        }
+        
+        // 4. Edit page
+        function editPage() {
+            const data = {
+                page_id: parseInt(document.getElementById('editPageId').value),
+                text: document.getElementById('pageText').value
+            };
+            makeRequest('POST', `${API_BASE}/api/page/redoPage`, data);
+        }
+        
+        // 5. Delete page
+        function deletePage() {
+            const data = {
+                page_id: parseInt(document.getElementById('deletePageId').value)
+            };
+            makeRequest('DELETE', `${API_BASE}/api/page/deletePage`, data);
+        }
+        
+        console.log('Page API Test Page Loaded');
+        console.log('Use browser console (F12) to see results');
+    </script>
+</body>
+</html>

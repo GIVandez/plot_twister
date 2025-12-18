@@ -2,8 +2,10 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from fastapi import UploadFile, File, Form
 from fastapi.responses import FileResponse
-
 from fastapi import APIRouter
+
+from random import randint
+
 
 router = APIRouter()
 
@@ -65,13 +67,31 @@ async def drag_and_drop_frame(request: DragAndDropFrameRequest):
 async def load_frames(project_id: int):
     frames = [
         FrameInfo(
-            frame_id=1,
+            frame_id=randint(0, 10000),
             description="Кадр 1",
             start_time=0,
-            end_time=73,
-            pic_path="/path/to/image.jpg",
+            end_time=4,
+            pic_path="/path/to/image1.jpg",
             connected="",
             number=1
+        ),
+        FrameInfo(
+            frame_id=randint(0, 10000),
+            description="Кадр 2",
+            start_time=4,
+            end_time=17,
+            pic_path="/path/to/image2.jpg",
+            connected="",
+            number=2
+        ),
+        FrameInfo(
+            frame_id=randint(0, 10000),
+            description="Кадр 3",
+            start_time=17,
+            end_time=73,
+            pic_path="/path/to/image3.jpg",
+            connected="",
+            number=3
         )
     ]
     return {"frames": frames}
@@ -99,6 +119,6 @@ async def upload_image(frame_id: int = Form(...), picture: UploadFile = File(...
 
 
 
-@router.get("/")
+@router.get("/frame_test")
 async def load_start_page():
     return FileResponse(path="static/storyboard/index.html")
