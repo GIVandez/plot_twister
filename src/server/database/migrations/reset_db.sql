@@ -1,3 +1,12 @@
+-- sudo -u postgres psql
+-- create user plot_twister with password 'plot_twister'
+-- create database plot_twister
+-- ALTER DATABASE plot_twister OWNER TO aaa;
+-- \c plot_twister
+
+-- psql -U aaa -d plot_twister -f reset_db.sql
+
+
 -- Удаляем существующие таблицы (если нужно пересоздать)
 DROP TABLE IF EXISTS frame;
 DROP TABLE IF EXISTS page;
