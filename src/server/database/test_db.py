@@ -1,11 +1,11 @@
-from database_model import DatabaseModel
+from repository import DatabaseRepository
 
 def test_database_model():
     """Тестирование всех основных методов DatabaseModel"""
     print("🚀 Начинаем тестирование DatabaseModel...")
     
     # Инициализация модели
-    db = DatabaseModel("postgresql://aaa:aaa@localhost:5432/plot_twister")
+    db = DatabaseRepository()
     
     # ==================== ТЕСТИРОВАНИЕ ПОЛЬЗОВАТЕЛЕЙ ====================
     print("\n📋 Тестирование пользователей:")

@@ -2,10 +2,9 @@ from sqlalchemy import Column, Integer, String, Text, ForeignKey, CheckConstrain
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-
-
 # Создаем базовый класс для моделей
 Base = declarative_base()
+# Base.metadata.create_all(base.engine)  # Создаем таблицы если их нет !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # Модели таблиц
 class User(Base):

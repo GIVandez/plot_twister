@@ -1,88 +1,18 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, CheckConstraint
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+
+from base import engine
+from models import User, Project, Page, Frame
+
 import os
 from typing import Optional, Dict, List
 
 
 
-# Создаем базовый класс для моделей
-Base = declarative_base()
-
-# Модели таблиц
-class User(Base):
-    __tablename__ = 'users'
-    
-    id = Column(Integer, primary_key=True)
-    login = Column(String(50), unique=True, nullable=False)
-    password = Column(String(255), nullable=False)
-    role = Column(String(20), nullable=False, default='user')
-    
-    # Связи
-    projects = relationship("Project", back_populates="owner_user", cascade="all, delete-orphan")
-
-
-class Project(Base):
-    __tablename__ = 'project'
-    
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
-    owner = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    
-    # Связи
-    owner_user = relationship("User", back_populates="projects")
-    pages = relationship("Page", back_populates="project_rel", cascade="all, delete-orphan")
-    frames = relationship("Frame", back_populates="project_rel", cascade="all, delete-orphan")
-
-
-class Page(Base):
-    __tablename__ = 'page'
-    
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('project.id', ondelete='CASCADE'), nullable=False)
-    number = Column(Integer, nullable=False)
-    text = Column(Text)
-    
-    # Ограничения
-    __table_args__ = (
-        CheckConstraint('number > 0', name='check_page_number_positive'),
-    )
-    
-    # Связи
-    project_rel = relationship("Project", back_populates="pages")
-    connected_frames = relationship("Frame", back_populates="connected_page_rel")
-
-
-class Frame(Base):
-    __tablename__ = 'frame'
-    
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('project.id', ondelete='CASCADE'), nullable=False)
-    description = Column(Text)
-    start_time = Column(Integer, nullable=False)
-    end_time = Column(Integer, nullable=False)
-    pic_path = Column(String(500), nullable=False)
-    connected_page = Column(Integer, ForeignKey('page.id', ondelete='SET NULL'))
-    number = Column(Integer, nullable=False)
-    
-    # Ограничения
-    __table_args__ = (
-        CheckConstraint('start_time >= 0', name='check_start_time_positive'),
-        CheckConstraint('end_time >= start_time', name='check_end_time_gte_start_time'),
-        CheckConstraint('number > 0', name='check_frame_number_positive'),
-    )
-    
-    # Связи
-    project_rel = relationship("Project", back_populates="frames")
-    connected_page_rel = relationship("Page", back_populates="connected_frames")
-
-
-class DatabaseModel:
-    def __init__(self, connection_string: str = "postgresql://aaa:aaa@localhost:5432/plot_twister"):
-        """Инициализация подключения к базе данных"""
-        self.engine = create_engine(connection_string)
-        self.Session = sessionmaker(bind=self.engine)
-        Base.metadata.create_all(self.engine)  # Создаем таблицы если их нет
+class DatabaseRepository:
+    def __init__(self):
+        self.Session = sessionmaker(bind=engine)
 
     # ==================== User Methods ====================
 
@@ -613,29 +543,3 @@ class DatabaseModel:
             return user.id if user else None
         finally:
             session.close()
-
-
-
-
-
-
-# Пример использования
-if __name__ == "__main__":
-    # Создаем экземпляр модели
-    db = DatabaseModel()
-    
-    # Тестируем методы
-    # Создание пользователя
-    db.create_user("test_user", "test_password", "test@example.com")
-    
-    # Проверка существования пользователя
-    exists = db.user_exist("test_user")
-    print(f"User exists: {exists}")
-    
-    # Получение информации о пользователе
-    user_info = db.read_user_info("test_user")
-    print(f"User info: {user_info}")
-    
-    # Создание проекта
-    # Нужно получить ID пользователя
-    # В реальном приложении можно добавить метод для получения ID по логину
