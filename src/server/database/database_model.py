@@ -312,7 +312,8 @@ class DatabaseModel:
     # ==================== Frame Methods ====================
 
     def create_frame(self, project_id: int, start_time: int, end_time: int, 
-                    pic_path: str, description: Optional[str] = None) -> bool:
+                    pic_path: str, description: Optional[str] = None, 
+                    number: Optional[int] = None) -> bool:
         """Создание записи о новом кадре"""
         session = self.Session()
         try:
@@ -321,12 +322,14 @@ class DatabaseModel:
             if not project:
                 return False
             
-            # Определяем номер кадра (максимальный номер + 1)
-            max_number = session.query(Frame.number).filter(
-                Frame.project_id == project_id
-            ).order_by(Frame.number.desc()).first()
-            
-            new_number = 1 if not max_number else max_number[0] + 1
+            # Если номер не указан, определяем автоматически
+            if number is None:
+                max_number = session.query(Frame.number).filter(
+                    Frame.project_id == project_id
+                ).order_by(Frame.number.desc()).first()
+                new_number = 1 if not max_number else max_number[0] + 1
+            else:
+                new_number = number
             
             new_frame = Frame(
                 project_id=project_id,
@@ -462,7 +465,7 @@ class DatabaseModel:
 
     # ==================== Page Methods ====================
 
-    def create_page(self, project_id: int, number: int, text: Optional[str] = None) -> bool:
+    def create_page(self, project_id: int, number: Optional[int] = None, text: Optional[str] = None) -> bool:
         """Создание записи о новой странице сценария"""
         session = self.Session()
         try:
@@ -470,6 +473,13 @@ class DatabaseModel:
             project = session.query(Project).filter(Project.id == project_id).first()
             if not project:
                 return False
+            
+            # Если номер не указан, находим максимальный номер + 1
+            if number is None:
+                max_number = session.query(Page.number).filter(
+                    Page.project_id == project_id
+                ).order_by(Page.number.desc()).first()
+                number = 1 if not max_number else max_number[0] + 1
             
             new_page = Page(
                 project_id=project_id,
@@ -568,6 +578,45 @@ class DatabaseModel:
             return False
         finally:
             session.close()
+
+
+
+
+
+    def get_max_page_number(self, project_id: int) -> int:
+        """Получение максимального номера страницы в проекте"""
+        session = self.Session()
+        try:
+            max_number = session.query(Page.number).filter(
+                Page.project_id == project_id
+            ).order_by(Page.number.desc()).first()
+            return max_number[0] if max_number else 0
+        finally:
+            session.close()
+
+    def get_max_frame_number(self, project_id: int) -> int:
+        """Получение максимального номера кадра в проекте"""
+        session = self.Session()
+        try:
+            max_number = session.query(Frame.number).filter(
+                Frame.project_id == project_id
+            ).order_by(Frame.number.desc()).first()
+            return max_number[0] if max_number else 0
+        finally:
+            session.close()
+
+    def get_user_id_by_login(self, username: str) -> Optional[int]:
+        """Получение ID пользователя по логину"""
+        session = self.Session()
+        try:
+            user = session.query(User).filter(User.login == username).first()
+            return user.id if user else None
+        finally:
+            session.close()
+
+
+
+
 
 
 # Пример использования
