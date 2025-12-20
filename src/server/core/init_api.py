@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from server.routes import admin_router, frame_router, graphic_editor_router, page_router, project_router, user_router
+from server.routes import admin_router, frame_router, graphic_editor_router, page_router, project_router, user_router, auth_router
 
 # запуск сервера
 # uv run uvicorn main:app --reload
@@ -24,6 +24,7 @@ app.mount("/script", StaticFiles(directory="D:/Code/five/plot_twister/src/static
 app.mount("/storyboard", StaticFiles(directory="D:/Code/five/plot_twister/src/static/storyboard"), name="storyboard")
 app.mount("/static", StaticFiles(directory="D:/Code/five/plot_twister/src/static"), name="static")
 
+app.include_router(auth_router.router)
 app.include_router(admin_router.router)
 app.include_router(frame_router.router)
 app.include_router(graphic_editor_router.router)

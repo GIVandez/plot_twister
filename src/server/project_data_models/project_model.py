@@ -11,7 +11,7 @@ class ProjectModel:
         self.db = DatabaseRepository()
         self.Session = sessionmaker(bind=engine)
     
-    def new_project(self, username: str, project_name: str) -> bool:
+    def new_project(self, username: str, project_name: str) -> Optional[int]:
         """
         Создание нового проекта пользователя
         
@@ -20,19 +20,40 @@ class ProjectModel:
             project_name: название проекта
         
         Returns:
-            success: bool - успешность операции
+            project_id: int - ID созданного проекта или None в случае ошибки
         """
         # Проверяем отсутствие проекта с таким же названием у пользователя
         if self.db.user_project_exist(project_name, username):
-            return False
+            return None
         
         # Получаем ID пользователя
         owner_id = self.db.get_user_id_by_login(username)
         if not owner_id:
-            return False
+            return None
         
-        # Создаем новый проект
-        return self.db.create_project(project_name, owner_id)
+        # Используем сессию для создания и получения ID
+        session = self.Session()
+        try:
+            from database.models import Project
+            from database.models import User
+            
+            # Проверяем существование пользователя
+            owner = session.query(User).filter(User.id == owner_id).first()
+            if not owner:
+                return None
+            
+            new_project = Project(name=project_name, owner=owner_id)
+            session.add(new_project)
+            session.commit()
+            session.refresh(new_project)
+            return new_project.id
+            
+        except Exception as e:
+            session.rollback()
+            print(f"Error creating project: {e}")
+            return None
+        finally:
+            session.close()
     
     def edit_project_name(self, project_id: int, new_project_name: str) -> bool:
         """

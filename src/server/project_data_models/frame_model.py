@@ -11,7 +11,7 @@ class FrameModel:
         self.db = DatabaseRepository()
         self.Session = sessionmaker(bind=engine)
     
-    def new_frame(self, username: str, new_frame_data: Dict) -> bool:
+    def new_frame(self, username: str, new_frame_data: Dict) -> Optional[int]:
         """
         Создание нового кадра проекта
         
@@ -20,26 +20,56 @@ class FrameModel:
             new_frame_data: словарь с информацией о новом кадре
         
         Returns:
-            success: bool - успешность операции
+            frame_id: int - ID созданного кадра или None в случае ошибки
         """
         project_id = new_frame_data.get('project_id')
         start_time = new_frame_data.get('start_time')
         end_time = new_frame_data.get('end_time')
-        pic_path = new_frame_data.get('pic_path')
+        pic_path = new_frame_data.get('pic_path', '')
         description = new_frame_data.get('description')
         number = new_frame_data.get('number')
         
-        if not all([project_id, start_time, end_time, pic_path]):
-            return False
+        if not all([project_id, start_time is not None, end_time is not None]):
+            return None
         
-        return self.db.create_frame(
-            project_id=project_id,
-            start_time=start_time,
-            end_time=end_time,
-            pic_path=pic_path,
-            description=description,
-            number=number
-        )
+        # Используем сессию для создания и получения ID
+        session = self.Session()
+        try:
+            from database.models import Frame, Project
+            # Проверяем существование проекта
+            project = session.query(Project).filter(Project.id == project_id).first()
+            if not project:
+                return None
+            
+            # Если номер не указан, определяем автоматически
+            if number is None:
+                max_number = session.query(Frame.number).filter(
+                    Frame.project_id == project_id
+                ).order_by(Frame.number.desc()).first()
+                new_number = 1 if not max_number else max_number[0] + 1
+            else:
+                new_number = number
+            
+            new_frame = Frame(
+                project_id=project_id,
+                description=description,
+                start_time=start_time,
+                end_time=end_time,
+                pic_path=pic_path,
+                number=new_number
+            )
+            
+            session.add(new_frame)
+            session.commit()
+            session.refresh(new_frame)
+            return new_frame.id
+            
+        except Exception as e:
+            session.rollback()
+            print(f"Error creating frame: {e}")
+            return None
+        finally:
+            session.close()
     
     def get_frame_info(self, frame_id: int) -> Optional[Dict]:
         """
@@ -89,6 +119,45 @@ class FrameModel:
         """
         # Метод delete_frame уже удаляет изображение кадра
         return self.db.delete_frame(frame_id)
+    
+    def get_project_frames(self, project_id: int) -> list:
+        """
+        Получение всех кадров проекта
+        
+        Args:
+            project_id: id проекта
+        
+        Returns:
+            frames: список словарей с информацией о кадрах
+        """
+        session = self.Session()
+        try:
+            from database.models import Project
+            # Проверяем существование проекта
+            project = session.query(Project).filter(Project.id == project_id).first()
+            if not project:
+                return []
+            
+            frames = session.query(Frame).filter(Frame.project_id == project_id).order_by(Frame.number).all()
+            
+            result = []
+            for frame in frames:
+                result.append({
+                    'frame_id': frame.id,
+                    'description': frame.description or '',
+                    'start_time': frame.start_time,
+                    'end_time': frame.end_time,
+                    'pic_path': frame.pic_path,
+                    'connected': str(frame.connected_page) if frame.connected_page else '',
+                    'number': frame.number
+                })
+            
+            return result
+        except Exception as e:
+            print(f"Error getting project frames: {e}")
+            return []
+        finally:
+            session.close()
     
     def get_frame_pic(self, frame_id: int) -> Optional[str]:
         """
