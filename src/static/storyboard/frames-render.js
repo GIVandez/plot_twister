@@ -642,7 +642,8 @@ async function deleteFrame(index) {
             if (window.updateLeftScrollbar) {
                 window.updateLeftScrollbar();
             }
-    }, 0);
+        }, 0);
+    }
 }
 
 // Добавляем функции в глобальную область видимости
