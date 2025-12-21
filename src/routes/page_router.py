@@ -183,3 +183,9 @@ async def load_page(page_id: int):
 @router.get("/page_test")
 async def load_start_page():
     return FileResponse(path="static/script/api_test.html")
+
+
+
+@router.get("/page")
+async def load_start_page():
+    return FileResponse(path="static/script/index.html")
