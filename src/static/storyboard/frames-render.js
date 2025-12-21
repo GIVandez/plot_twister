@@ -583,14 +583,22 @@ async function saveTime(index, type, editInput, timeDiv) {
             alert('Время конца должно быть больше времени начала');
             editInput.value = formatTime(frame[type]);
         } else {
-            // Update via API
+            // Calculate delta for domino effect
+            const oldValue = frame[type];
+            const delta = newTime - oldValue;
+
+            // Update current frame via API
             if (type === 'start' && store.redoStartTime) {
                 await store.redoStartTime(frame.id, newTime);
             } else if (type === 'end' && store.redoEndTime) {
                 await store.redoEndTime(frame.id, newTime);
             } else {
-                // Fallback
                 store.setFrameValuesByIndex(index, { [type]: newTime });
+            }
+
+            // Domino effect: shift subsequent frames when end time changes
+            if (type === 'end' && delta !== 0) {
+                await shiftFramesFromIndexWithAPI(index + 1, delta);
             }
 
             timeDiv.textContent = formatTime(newTime);
@@ -608,30 +616,39 @@ async function saveTime(index, type, editInput, timeDiv) {
     timeDiv.style.display = 'flex';
 }
 
-// Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд (delta может быть отрицательным)
+// Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд с отправкой на сервер
+async function shiftFramesFromIndexWithAPI(startIndex, delta) {
+    const store = window.storyboardStore;
+    if (!store || !Number.isFinite(delta) || delta === 0) return;
+    
+    const frameCount = store.getFrameCount();
+    for (let i = startIndex; i < frameCount; i++) {
+        const f = store.getFrameByIndex(i);
+        if (!f) continue;
+        const newStart = Math.max(0, Math.round(f.start + delta));
+        const newEnd = Math.max(newStart, Math.round(f.end + delta));
+        
+        // Update via API
+        if (store.redoStartTime) {
+            await store.redoStartTime(f.id, newStart);
+        }
+        if (store.redoEndTime) {
+            await store.redoEndTime(f.id, newEnd);
+        }
+    }
+}
+
+// Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд (локально, без API)
 function shiftFramesFromIndex(startIndex, delta) {
     const store = window.storyboardStore;
-    if (!store || !Number.isFinite(delta) || delta === 0) return [];
-    const changed = [];
+    if (!store || !Number.isFinite(delta) || delta === 0) return;
     for (let i = startIndex; i < store.getFrameCount(); i++) {
         const f = store.getFrameByIndex(i);
         if (!f) continue;
         const newStart = Math.max(0, Math.round(f.start + delta));
         const newEnd = Math.max(newStart, Math.round(f.end + delta));
-        // Only update and record if there is an actual change
-        if (newStart !== f.start || newEnd !== f.end) {
-            store.setFrameValuesByIndex(i, { start: newStart, end: newEnd });
-            changed.push({ frame_id: f.id, start_time: newStart, end_time: newEnd });
-        }
+        store.setFrameValuesByIndex(i, { start: newStart, end: newEnd });
     }
-
-    // Persist changes asynchronously
-    if (changed.length && store.persistFrameTimes) {
-        // Don't await here to keep UI responsive; handle errors inside persistFrameTimes
-        store.persistFrameTimes(changed).catch(err => console.error('Error persisting shifted frames:', err));
-    }
-
-    return changed;
 }
 window.shiftFramesFromIndex = shiftFramesFromIndex;
 

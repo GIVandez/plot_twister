@@ -575,34 +575,6 @@
     }
   }
 
-  // Persist start/end times for multiple frames. Accepts array of { frame_id, start_time, end_time }
-  async function persistFrameTimes(framesToUpdate) {
-    if (!Array.isArray(framesToUpdate) || framesToUpdate.length === 0) return false;
-    try {
-      for (const f of framesToUpdate) {
-        const fid = Number(f.frame_id);
-        if (Number.isFinite(Number(f.start_time))) {
-          await fetch(`${API_BASE}/api/frame/redoStartTime`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ frame_id: fid, start_time: Number(f.start_time) })
-          });
-        }
-        if (Number.isFinite(Number(f.end_time))) {
-          await fetch(`${API_BASE}/api/frame/redoEndTime`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ frame_id: fid, end_time: Number(f.end_time) })
-          });
-        }
-      }
-      return true;
-    } catch (error) {
-      console.error('Error persisting frame times:', error);
-      return false;
-    }
-  }
-
   // Helper function to get project ID from frames
   function getProjectIdFromFrames() {
     return window.currentProjectId || 1;
@@ -635,7 +607,6 @@
     deleteFrame,
     uploadImage,
     deleteImage,
-    persistFrameTimes,
     getSnapshot,
     setSnapshot,
     _suppressUndo: false
