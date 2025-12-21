@@ -611,14 +611,27 @@ async function saveTime(index, type, editInput, timeDiv) {
 // Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд (delta может быть отрицательным)
 function shiftFramesFromIndex(startIndex, delta) {
     const store = window.storyboardStore;
-    if (!store || !Number.isFinite(delta) || delta === 0) return;
+    if (!store || !Number.isFinite(delta) || delta === 0) return [];
+    const changed = [];
     for (let i = startIndex; i < store.getFrameCount(); i++) {
         const f = store.getFrameByIndex(i);
         if (!f) continue;
         const newStart = Math.max(0, Math.round(f.start + delta));
         const newEnd = Math.max(newStart, Math.round(f.end + delta));
-        store.setFrameValuesByIndex(i, { start: newStart, end: newEnd });
+        // Only update and record if there is an actual change
+        if (newStart !== f.start || newEnd !== f.end) {
+            store.setFrameValuesByIndex(i, { start: newStart, end: newEnd });
+            changed.push({ frame_id: f.id, start_time: newStart, end_time: newEnd });
+        }
     }
+
+    // Persist changes asynchronously
+    if (changed.length && store.persistFrameTimes) {
+        // Don't await here to keep UI responsive; handle errors inside persistFrameTimes
+        store.persistFrameTimes(changed).catch(err => console.error('Error persisting shifted frames:', err));
+    }
+
+    return changed;
 }
 window.shiftFramesFromIndex = shiftFramesFromIndex;
 
