@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import FileResponse
 from dto.auth_dto import LoginRequest, LoginResponse, RegisterRequest, LogoutRequest
 from user_models.auth_model import AuthModel
 
@@ -63,3 +64,9 @@ async def logout(request: LogoutRequest):
     # В текущей реализации токены не хранятся на сервере,
     # поэтому logout просто возвращает успех
     return {"success": True, "message": "Выход выполнен успешно"}
+
+
+
+@router.get("/auth_test")
+async def load_start_page():
+    return FileResponse(path="static/auth/api_test.html")

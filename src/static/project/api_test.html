@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        .api-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        .api-section h3 {
+            margin-top: 0;
+            color: #555;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        input, button {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 15px;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button.delete {
+            background-color: #f44336;
+        }
+        
+        button.delete:hover {
+            background-color: #d32f2f;
+        }
+        
+        button.secondary {
+            background-color: #2196F3;
+        }
+        
+        button.secondary:hover {
+            background-color: #1976D2;
+        }
+        
+        .response {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e8f4fd;
+            border: 1px solid #b3d7ff;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .flex {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .flex input {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Project API Test</h1>
+        
+        <div class="api-section">
+            <h3>1. Создать проект (POST /api/user/createProject)</h3>
+            <label>Логин пользователя:</label>
+            <input type="text" id="createLogin" placeholder="username" value="test_user">
+            <label>Название проекта:</label>
+            <input type="text" id="projectName" placeholder="Новый проект">
+            <button onclick="createProject()">Создать проект</button>
+            <div class="response" id="createResponse"></div>
+        </div>
+        
+        <div class="api-section">
+            <h3>2. Получить проекты пользователя (GET /api/users/{user_name}/loadInfo)</h3>
+            <label>Имя пользователя:</label>
+            <div class="flex">
+                <input type="text" id="userName" placeholder="username" value="test_user">
+                <button onclick="loadUserProjects()">Загрузить проекты</button>
+            </div>
+            <div class="response" id="projectsResponse"></div>
+        </div>
+        
+        <div class="api-section">
+            <h3>3. Обновить название проекта (POST /api/user/updateProjectInfo)</h3>
+            <label>ID проекта:</label>
+            <input type="number" id="updateProjectId" placeholder="1" value="1">
+            <label>Новое название:</label>
+            <input type="text" id="newProjectName" placeholder="Обновленное название">
+            <button onclick="updateProject()">Обновить проект</button>
+            <div class="response" id="updateResponse"></div>
+        </div>
+        
+        <div class="api-section">
+            <h3>4. Удалить проект (DELETE /api/user/deleteProject)</h3>
+            <label>ID проекта:</label>
+            <div class="flex">
+                <input type="number" id="deleteProjectId" placeholder="1" value="1">
+                <button class="delete" onclick="deleteProject()">Удалить проект</button>
+            </div>
+            <div class="response" id="deleteResponse"></div>
+        </div>
+        
+        <div class="api-section">
+            <h3>5. Удалить сценарий проекта (DELETE /api/user/deleteScript)</h3>
+            <label>ID проекта:</label>
+            <div class="flex">
+                <input type="number" id="deleteScriptProjectId" placeholder="1" value="1">
+                <button class="secondary" onclick="deleteScript()">Удалить сценарий</button>
+            </div>
+            <div class="response" id="deleteScriptResponse"></div>
+        </div>
+        
+        <div class="api-section">
+            <h3>6. Удалить раскадровку проекта (DELETE /api/user/deleteFrames)</h3>
+            <label>ID проекта:</label>
+            <div class="flex">
+                <input type="number" id="deleteFramesProjectId" placeholder="1" value="1">
+                <button class="secondary" onclick="deleteFrames()">Удалить раскадровку</button>
+            </div>
+            <div class="response" id="deleteFramesResponse"></div>
+        </div>
+        
+        <div class="api-section">
+            <h3>7. Связать кадр и страницу (POST /api/frame/connectFrame)</h3>
+            <label>ID кадра:</label>
+            <input type="number" id="frameId" placeholder="1" value="1">
+            <label>ID страницы:</label>
+            <input type="number" id="pageId" placeholder="1" value="1">
+            <button onclick="connectFramePage()">Связать</button>
+            <div class="response" id="connectResponse"></div>
+        </div>
+        
+        <div class="api-section">
+            <h3>8. Разорвать связь кадра и страницы (POST /api/frame/disconnectFrame)</h3>
+            <label>ID кадра:</label>
+            <div class="flex">
+                <input type="number" id="disconnectFrameId" placeholder="1" value="1">
+                <button class="secondary" onclick="disconnectFramePage()">Разорвать связь</button>
+            </div>
+            <div class="response" id="disconnectResponse"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin; // http://127.0.0.1:8000
+        
+        async function makeRequest(method, url, data = null) {
+            console.log(`\n=== ${method} ${url} ===`);
+            if (data) console.log('Data:', data);
+            
+            const options = {
+                method,
+                headers: {}
+            };
+            
+            if (data) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                console.log('Status:', response.status);
+                
+                if (response.status === 204) {
+                    return { status: 204, message: 'No Content' };
+                }
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, text: ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Response:', result);
+                return result;
+            } catch (error) {
+                console.error('Error:', error.message);
+                throw error;
+            }
+        }
+        
+        function showResponse(elementId, data) {
+            const responseDiv = document.getElementById(elementId);
+            if (typeof data === 'object') {
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+            } else {
+                responseDiv.textContent = data;
+            }
+        }
+        
+        function showError(elementId, error) {
+            const responseDiv = document.getElementById(elementId);
+            responseDiv.textContent = `Ошибка: ${error.message}`;
+            responseDiv.style.backgroundColor = '#fde8e8';
+            responseDiv.style.borderColor = '#f5c6cb';
+        }
+        
+        function clearResponse(elementId) {
+            const responseDiv = document.getElementById(elementId);
+            responseDiv.textContent = '';
+            responseDiv.style.backgroundColor = '#e8f4fd';
+            responseDiv.style.borderColor = '#b3d7ff';
+        }
+        
+        // 1. Создать проект
+        async function createProject() {
+            clearResponse('createResponse');
+            const login = document.getElementById('createLogin').value;
+            const name = document.getElementById('projectName').value;
+            
+            if (!login || !name) {
+                showError('createResponse', new Error('Заполните все поля'));
+                return;
+            }
+            
+            try {
+                const data = { login, name };
+                const result = await makeRequest('POST', `${API_BASE}/api/user/createProject`, data);
+                showResponse('createResponse', result);
+            } catch (error) {
+                showError('createResponse', error);
+            }
+        }
+        
+        // 2. Получить проекты пользователя
+        async function loadUserProjects() {
+            clearResponse('projectsResponse');
+            const userName = document.getElementById('userName').value;
+            
+            if (!userName) {
+                showError('projectsResponse', new Error('Введите имя пользователя'));
+                return;
+            }
+            
+            try {
+                const result = await makeRequest('GET', `${API_BASE}/api/users/${userName}/loadInfo`);
+                showResponse('projectsResponse', result);
+            } catch (error) {
+                if (error.message.includes('204')) {
+                    showResponse('projectsResponse', 'У пользователя нет проектов');
+                } else {
+                    showError('projectsResponse', error);
+                }
+            }
+        }
+        
+        // 3. Обновить проект
+        async function updateProject() {
+            clearResponse('updateResponse');
+            const projectId = parseInt(document.getElementById('updateProjectId').value);
+            const name = document.getElementById('newProjectName').value;
+            
+            if (!projectId || !name) {
+                showError('updateResponse', new Error('Заполните все поля'));
+                return;
+            }
+            
+            try {
+                const data = { project_id: projectId, name };
+                const result = await makeRequest('POST', `${API_BASE}/api/user/updateProjectInfo`, data);
+                showResponse('updateResponse', result);
+            } catch (error) {
+                showError('updateResponse', error);
+            }
+        }
+        
+        // 4. Удалить проект
+        async function deleteProject() {
+            clearResponse('deleteResponse');
+            const projectId = parseInt(document.getElementById('deleteProjectId').value);
+            
+            if (!projectId) {
+                showError('deleteResponse', new Error('Введите ID проекта'));
+                return;
+            }
+            
+            try {
+                const data = { project_id: projectId };
+                const result = await makeRequest('DELETE', `${API_BASE}/api/user/deleteProject`, data);
+                showResponse('deleteResponse', result);
+            } catch (error) {
+                showError('deleteResponse', error);
+            }
+        }
+        
+        // 5. Удалить сценарий
+        async function deleteScript() {
+            clearResponse('deleteScriptResponse');
+            const projectId = parseInt(document.getElementById('deleteScriptProjectId').value);
+            
+            if (!projectId) {
+                showError('deleteScriptResponse', new Error('Введите ID проекта'));
+                return;
+            }
+            
+            try {
+                const data = { project_id: projectId };
+                const result = await makeRequest('DELETE', `${API_BASE}/api/user/deleteScript`, data);
+                showResponse('deleteScriptResponse', result);
+            } catch (error) {
+                showError('deleteScriptResponse', error);
+            }
+        }
+        
+        // 6. Удалить раскадровку
+        async function deleteFrames() {
+            clearResponse('deleteFramesResponse');
+            const projectId = parseInt(document.getElementById('deleteFramesProjectId').value);
+            
+            if (!projectId) {
+                showError('deleteFramesResponse', new Error('Введите ID проекта'));
+                return;
+            }
+            
+            try {
+                const data = { project_id: projectId };
+                const result = await makeRequest('DELETE', `${API_BASE}/api/user/deleteFrames`, data);
+                showResponse('deleteFramesResponse', result);
+            } catch (error) {
+                showError('deleteFramesResponse', error);
+            }
+        }
+        
+        // 7. Связать кадр и страницу
+        async function connectFramePage() {
+            clearResponse('connectResponse');
+            const frameId = parseInt(document.getElementById('frameId').value);
+            const pageId = parseInt(document.getElementById('pageId').value);
+            
+            if (!frameId || !pageId) {
+                showError('connectResponse', new Error('Заполните все поля'));
+                return;
+            }
+            
+            try {
+                const data = { frame_id: frameId, page_id: pageId };
+                const result = await makeRequest('POST', `${API_BASE}/api/frame/connectFrame`, data);
+                showResponse('connectResponse', result);
+            } catch (error) {
+                showError('connectResponse', error);
+            }
+        }
+        
+        // 8. Разорвать связь
+        async function disconnectFramePage() {
+            clearResponse('disconnectResponse');
+            const frameId = parseInt(document.getElementById('disconnectFrameId').value);
+            
+            if (!frameId) {
+                showError('disconnectResponse', new Error('Введите ID кадра'));
+                return;
+            }
+            
+            try {
+                const data = { frame_id: frameId };
+                const result = await makeRequest('POST', `${API_BASE}/api/frame/disconnectFrame`, data);
+                showResponse('disconnectResponse', result);
+            } catch (error) {
+                showError('disconnectResponse', error);
+            }
+        }
+        
+        console.log('Project API Test Page Loaded');
+        console.log('API Base URL:', API_BASE);
+        console.log('Use browser console (F12) to see detailed requests/responses');
+    </script>
+</body>
+</html>

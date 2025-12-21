@@ -22,6 +22,8 @@ app.mount("/account", StaticFiles(directory="D:/Code/five/plot_twister/src/stati
 app.mount("/admin", StaticFiles(directory="D:/Code/five/plot_twister/src/static/admin"), name="admin")
 app.mount("/script", StaticFiles(directory="D:/Code/five/plot_twister/src/static/script"), name="script")
 app.mount("/storyboard", StaticFiles(directory="D:/Code/five/plot_twister/src/static/storyboard"), name="storyboard")
+app.mount("/auth", StaticFiles(directory="D:/Code/five/plot_twister/src/static/auth"), name="auth")
+app.mount("/project", StaticFiles(directory="D:/Code/five/plot_twister/src/static/project"), name="project")
 app.mount("/static", StaticFiles(directory="D:/Code/five/plot_twister/src/static"), name="static")
 
 app.include_router(auth_router.router)

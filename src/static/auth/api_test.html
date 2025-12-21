@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        input {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f4fd;
+            border: 1px solid #b3d7ff;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #fde8e8;
+            border-color: #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auth API Test</h1>
+    
+    <div class="section">
+        <h2>1. Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username" value="testuser">
+        <input type="password" id="loginPassword" placeholder="Password" value="password123">
+        <button onclick="login()">Login</button>
+        <div class="result" id="loginResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Register</h2>
+        <input type="text" id="regUsername" placeholder="Username" value="newuser">
+        <input type="password" id="regPassword" placeholder="Password" value="password123">
+        <input type="email" id="regEmail" placeholder="Email" value="newuser@example.com">
+        <button onclick="register()">Register</button>
+        <div class="result" id="registerResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Logout</h2>
+        <input type="number" id="logoutUserId" placeholder="User ID" value="1">
+        <button onclick="logout()">Logout</button>
+        <div class="result" id="logoutResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function makeRequest(method, url, data = null) {
+            console.log(`${method} ${url}`, data);
+            
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                const resultDiv = document.getElementById(url.includes('login') ? 'loginResult' : 
+                                                         url.includes('register') ? 'registerResult' : 'logoutResult');
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    resultDiv.textContent = `Error ${response.status}: ${error.detail || response.statusText}`;
+                    resultDiv.className = 'result error';
+                    return;
+                }
+                
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                resultDiv.className = 'result';
+                
+            } catch (error) {
+                const resultDiv = document.getElementById(url.includes('login') ? 'loginResult' : 
+                                                         url.includes('register') ? 'registerResult' : 'logoutResult');
+                resultDiv.textContent = `Network error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        function login() {
+            const data = {
+                login: document.getElementById('loginUsername').value,
+                password: document.getElementById('loginPassword').value
+            };
+            makeRequest('POST', `${API_BASE}/api/auth/login`, data);
+        }
+        
+        function register() {
+            const data = {
+                login: document.getElementById('regUsername').value,
+                password: document.getElementById('regPassword').value,
+                email: document.getElementById('regEmail').value
+            };
+            makeRequest('POST', `${API_BASE}/api/auth/register`, data);
+        }
+        
+        function logout() {
+            const data = {
+                user_id: parseInt(document.getElementById('logoutUserId').value)
+            };
+            makeRequest('POST', `${API_BASE}/api/auth/logout`, data);
+        }
+        
+        console.log('Auth API Test ready');
+    </script>
+</body>
+</html>
