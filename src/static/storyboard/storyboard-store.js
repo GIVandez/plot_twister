@@ -3,11 +3,11 @@
     return;
   }
 
-  const frames = window.storyboardData.frames || {};
+  const frames = window.storyboardData.frames || [];
   const pages = window.storyboardData.pages || {};
 
   function normalizeKey(value) {
-    return String(value);
+    return Number(value) || 0;
   }
 
   function parseTimestamp(value) {
@@ -68,37 +68,31 @@
   }
 
   function getFrameIds() {
-    // Сортировка по полю 'number' кадра (порядок отображения), с fallback на ключ как число
-    return Object.keys(frames).sort((a, b) => {
-      const fa = frames[a];
-      const fb = frames[b];
-      const na = fa && typeof fa.number === 'number' ? fa.number : Number(a);
-      const nb = fb && typeof fb.number === 'number' ? fb.number : Number(b);
-      return na - nb;
-    });
+    // Сортировка по полю 'number' кадра (порядок отображения)
+    return frames.slice().sort((a, b) => a.number - b.number).map(f => f.frame_id);
   }
 
   function getFrameCount() {
     return getFrameIds().length;
   }
 
-  function buildFrameObject(id, raw) {
+  function buildFrameObject(raw) {
     if (!raw) return null;
     return {
-      id: Number(id),
-      number: Number.isFinite(Number(raw.number)) ? Number(raw.number) : Number(id),
-      image: raw.image,
+      id: raw.frame_id,
+      number: raw.number,
+      image: raw.pic_path,
       description: raw.description,
-      start: parseTimestamp(raw.start_time),
-      end: parseTimestamp(raw.end_time),
-      shotSize: sanitizeShotSize(raw.shotSize),
-      connectedPage: sanitizePageValue(raw.connectedPage)
+      start: raw.start_time,
+      end: raw.end_time,
+      shotSize: '', // no shotSize in new format
+      connectedPage: raw.connected
     };
   }
 
   function getFrameById(id) {
-    const key = normalizeKey(id);
-    return buildFrameObject(key, frames[key]);
+    const frame = frames.find(f => f.frame_id === Number(id));
+    return buildFrameObject(frame);
   }
 
   function getFrameByIndex(index) {
@@ -113,7 +107,7 @@
   }
 
   function getFrameIndexById(id) {
-    return getFrameIds().indexOf(normalizeKey(id));
+    return getFrameIds().indexOf(Number(id));
   }
 
   // ---- Новое: утилиты снимков и менеджер отмены ----
@@ -126,9 +120,9 @@
   }
 
   function setSnapshot(snapshot) {
-    Object.keys(frames).forEach(k => { delete frames[k]; });
-    if (snapshot && typeof snapshot === 'object') {
-      Object.keys(snapshot).forEach(k => { frames[k] = deepCopy(snapshot[k]); });
+    frames.length = 0;
+    if (Array.isArray(snapshot)) {
+      frames.push(...deepCopy(snapshot));
     }
     try { window.storyboardData = window.storyboardData || {}; window.storyboardData.frames = frames; } catch (e) { /* ignore */ }
   }
@@ -205,8 +199,7 @@
   })();
 
   function setFrameValuesById(id, values = {}) {
-    const key = normalizeKey(id);
-    const target = frames[key];
+    const target = frames.find(f => f.frame_id === Number(id));
     if (!target) {
       return null;
     }
@@ -216,22 +209,19 @@
     const beforeSnapshot = suppress ? null : getSnapshot();
 
     if (Object.prototype.hasOwnProperty.call(values, 'image')) {
-      target.image = values.image;
+      target.pic_path = values.image;
     }
     if (Object.prototype.hasOwnProperty.call(values, 'description')) {
       target.description = values.description;
     }
     if (Object.prototype.hasOwnProperty.call(values, 'start')) {
-      target.start_time = formatTimestamp(values.start);
+      target.start_time = values.start;
     }
     if (Object.prototype.hasOwnProperty.call(values, 'end')) {
-      target.end_time = formatTimestamp(values.end);
-    }
-    if (Object.prototype.hasOwnProperty.call(values, 'shotSize')) {
-      target.shotSize = normalizeShotSize(values.shotSize);
+      target.end_time = values.end;
     }
     if (Object.prototype.hasOwnProperty.call(values, 'connectedPage')) {
-      target.connectedPage = normalizePageValue(values.connectedPage);
+      target.connected = values.connectedPage;
     }
     if (Object.prototype.hasOwnProperty.call(values, 'number')) {
       const n = Number(values.number);
@@ -242,7 +232,7 @@
 
     if (!suppress) {
       const afterSnapshot = getSnapshot();
-      window.undoManager && window.undoManager.pushAction({ type: 'modify', before: beforeSnapshot, after: afterSnapshot, meta: { id: key, values } });
+      window.undoManager && window.undoManager.pushAction({ type: 'modify', before: beforeSnapshot, after: afterSnapshot, meta: { id: Number(id), values } });
     }
 
     return getFrameById(id);
@@ -263,10 +253,7 @@
   }
 
   function getNextFrameNumber() {
-    const nums = Object.keys(frames).map(k => {
-      const v = frames[k];
-      return (v && typeof v.number === 'number') ? v.number : Number(k);
-    });
+    const nums = frames.map(f => f.number).filter(n => typeof n === 'number');
     if (nums.length === 0) return 1;
     return Math.max(...nums) + 1;
   }
@@ -281,15 +268,17 @@
     const endSeconds = frameData.end ?? startSeconds + 15;
     const numberValue = Number.isFinite(Number(frameData.number)) ? Number(frameData.number) : getNextFrameNumber();
 
-    frames[id] = {
-      image: frameData.image || '',
+    const newFrame = {
+      frame_id: id,
       description: frameData.description || '',
-      start_time: formatTimestamp(startSeconds),
-      end_time: formatTimestamp(endSeconds),
-      shotSize: normalizeShotSize(frameData.shotSize || '-'),
-      connectedPage: normalizePageValue(frameData.connectedPage),
+      start_time: startSeconds,
+      end_time: endSeconds,
+      pic_path: frameData.image || '',
+      connected: frameData.connectedPage || '',
       number: numberValue
     };
+
+    frames.push(newFrame);
 
     const newIndex = getFrameIndexById(id);
 
@@ -318,16 +307,19 @@
   }
 
   function removeFrameById(id) {
-    const key = normalizeKey(id);
+    const numId = Number(id);
+    const index = frames.findIndex(f => f.frame_id === numId);
+    if (index === -1) return;
+
     const storeObj = window.storyboardStore || {};
     const suppress = !!storeObj._suppressUndo;
     const beforeSnapshot = suppress ? null : getSnapshot();
 
-    delete frames[key];
+    frames.splice(index, 1);
 
     if (!suppress) {
       const afterSnapshot = getSnapshot();
-      window.undoManager && window.undoManager.pushAction({ type: 'remove', before: beforeSnapshot, after: afterSnapshot, meta: { id: key } });
+      window.undoManager && window.undoManager.pushAction({ type: 'remove', before: beforeSnapshot, after: afterSnapshot, meta: { id: numId } });
     }
   }
 

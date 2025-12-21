@@ -691,14 +691,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
 
-        const frames = window.storyboardData.frames || {};
-        for (const k in frames) {
-            if (!Object.prototype.hasOwnProperty.call(frames, k)) continue;
-            const fr = frames[k];
-            if (fr && typeof fr.connectedPage !== 'undefined' && fr.connectedPage !== null) {
-                const cp = Number(fr.connectedPage);
-                if (cp === removedNum) fr.connectedPage = null;
-                else if (cp > removedNum) fr.connectedPage = cp - 1;
+        const frames = window.storyboardData.frames || [];
+        for (const fr of frames) {
+            if (fr && fr.connected) {
+                const cp = Number(fr.connected);
+                if (cp === removedNum) fr.connected = '';
+                else if (cp > removedNum) fr.connected = String(cp - 1);
             }
         }
 
