@@ -363,17 +363,17 @@
       const response = await fetch(`${API_BASE}/api/frame/${projectId}/loadFrames`);
       if (!response.ok) throw new Error('Failed to load frames');
       const data = await response.json();
-      // Assuming data is an array of frames
+      // data.frames is array
       frames.length = 0; // Clear existing
-      data.forEach(frame => {
+      data.frames.forEach(frame => {
         frames.push({
           frame_id: frame.frame_id,
           description: frame.description,
           start_time: frame.start_time,
           end_time: frame.end_time,
           pic_path: frame.pic_path,
-          connected: frame.connected_page_id || '',
-          number: frame.frame_number || frame.frame_id
+          connected: frame.connected || '',
+          number: frame.number
         });
       });
       return true;
@@ -388,12 +388,12 @@
       const response = await fetch(`${API_BASE}/api/page/${projectId}/loadPages`);
       if (!response.ok) throw new Error('Failed to load pages');
       const data = await response.json();
-      // Assuming data is an array of pages
+      // data.pages is Dict[str, PageInfo]
       Object.keys(pages).forEach(key => delete pages[key]); // Clear existing
-      data.forEach(page => {
-        pages[page.page_id] = {
-          number: page.page_number || page.page_id,
-          text: page.text || ''
+      Object.entries(data.pages).forEach(([key, page]) => {
+        pages[key] = {
+          number: page.number,
+          text: page.text
         };
       });
       return true;
