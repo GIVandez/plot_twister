@@ -270,7 +270,7 @@ async function editDescription(index, descDiv) {
             // Update via API
             const frameData = store.getFrameByIndex(index);
             if (frameData && store.redoDescription) {
-                await store.redoDescription(frameData.frame_id, newDescription);
+                await store.redoDescription(frameData.id, newDescription);
             } else {
                 // Fallback to local update
                 store.setFrameValuesByIndex(index, { description: newDescription });
@@ -585,9 +585,9 @@ async function saveTime(index, type, editInput, timeDiv) {
         } else {
             // Update via API
             if (type === 'start' && store.redoStartTime) {
-                await store.redoStartTime(frame.frame_id, newTime);
+                await store.redoStartTime(frame.id, newTime);
             } else if (type === 'end' && store.redoEndTime) {
-                await store.redoEndTime(frame.frame_id, newTime);
+                await store.redoEndTime(frame.id, newTime);
             } else {
                 // Fallback
                 store.setFrameValuesByIndex(index, { [type]: newTime });
@@ -631,7 +631,7 @@ async function deleteFrame(index) {
     if (!frame) return;
 
     // Delete via API
-    const success = await store.deleteFrame(frame.frame_id);
+    const success = await store.deleteFrame(frame.id);
     if (success) {
         if (window.renderFrames) {
             window.renderFrames();
