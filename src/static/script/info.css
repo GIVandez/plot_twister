@@ -1,0 +1,374 @@
+/* info.css — обновленные стили */
+.info-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #3a3a3a;
+  padding: 8px;
+  position: relative;
+  min-width: 400px;
+  min-height: 0; /* allow to shrink to fit viewport */
+  margin: 0; /* сброшен дополнительный bottom offset */
+}
+
+.page-display {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  background: transparent;
+  /* allow children to control their own text color */
+  color: inherit;
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  /* ensure children start at top (no vertical centering) */
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  overflow-y: auto;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.page-display.active {
+  display: flex;
+}
+
+.page-controls {
+  display: none;
+  gap: 8px;
+  padding: 0 0 12px;
+  background: transparent;
+}
+
+.page-display.active .page-controls {
+  display: flex;
+}
+
+/* При активной странице: показываем «белую страницу» */
+.page-display.active .page-content {
+  background: #fff;
+  color: #000;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+/* Наследование цвета для внутренних элементов */
+.page-display.active .page-content > * {
+  color: inherit;
+}
+
+.page-controls .page-search-input,
+.page-controls .page-action-btn {
+  height: 40px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.28s ease, box-shadow 0.28s ease, background 0.28s ease;
+}
+
+.page-search-input {
+  flex: 2;
+  padding: 0 12px;
+  background: #666;
+  color: white;
+  text-align: left;
+}
+
+.page-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.page-action-btn {
+  flex: 1;
+  cursor: pointer;
+  background: #666;
+  color: white;
+}
+
+.page-action-btn:hover,
+.page-search-input:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+.page-action-btn:active {
+  transform: translateY(0);
+}
+
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  line-height: 1.5;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* transparent area — only text, start at top-left */
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  /* changed: allow children to stretch to full width */
+  align-items: stretch;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  -moz-hyphens: auto;
+  -ms-hyphens: auto;
+  scrollbar-gutter: stable both-edges;
+  box-shadow: none;
+  color: #fff; /* readable on dark panel */
+}
+
+/* Ensure direct children fill the .page-content width */
+.page-content > * {
+  margin-top: 0;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure paragraphs expand to full width */
+.page-content p {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Remove any default top margins from direct children so text sits exactly at the top */
+.page-content > * {
+  margin-top: 0;
+  padding: 0;
+}
+
+.page-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.page-content::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 8px 0;
+}
+
+.page-content::-webkit-scrollbar-thumb {
+  background: #d4c4b5;
+  border-radius: 3px;
+  border: 1px solid #c5b5a5;
+}
+
+.page-content::-webkit-scrollbar-thumb:hover {
+  background: #c5b5a5;
+}
+
+.page-content {
+  scrollbar-width: thin;
+  scrollbar-color: #d4c4b5 transparent;
+}
+
+.frame-info-display {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  background: transparent;
+  color: black;
+  z-index: 99;
+  display: none;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto;
+  border-radius: 8px;
+  scrollbar-gutter: stable both-edges;
+  padding-right: 5px;
+}
+
+.frame-info-display.active {
+  display: flex;
+}
+
+.frame-image-info {
+  width: 100%;
+  aspect-ratio: 16/9;
+  display: block;
+  background: #fff;
+  /* Убрал margin-bottom: 10px; */
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  -webkit-clip-path: inset(0 round 8px);
+  clip-path: inset(0 round 8px);
+
+  /* Добавьте эти свойства чтобы убрать разделитель */
+  border: none;
+  box-shadow: none;
+  outline: none;
+
+  /* Новое: явно сделать кликабельным и запретить масштабирование при hover */
+  cursor: pointer;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Запретить любые hover-трансформации и увеличение */
+.frame-image-info:hover,
+.frame-image-info.visible:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.frame-info-controls {
+    display: flex;
+    gap: 8px;
+    margin: 10px 0;
+    padding: 0;
+    width: 100%;
+    justify-content: space-between;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.frame-info-controls.visible {
+    opacity: 1;
+}
+
+.frame-control-btn {
+    flex: 1;
+    height: 40px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px 6px;
+    word-wrap: break-word;
+    line-height: 1.2;
+    min-width: 0;
+    background: #666;
+    color: white;
+}
+
+/* Убрал transform: translateY(-1px); и добавил расширение при наведении */
+.frame-control-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    background: #777;
+}
+
+.frame-control-btn:active {
+    transform: scale(0.98);
+}
+
+.frame-control-btn.time-start,
+.frame-control-btn.time-end,
+.frame-control-btn.shot-size{
+    background: #666;
+    color: white;
+}
+
+.frame-control-btn.page-connect {
+    background: #ffffff;
+    color: rgb(0, 0, 0);
+}
+
+.frame-image-info {
+  width: 100%;
+  aspect-ratio: 16/9;
+  display: block;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  -webkit-clip-path: inset(0 round 8px);
+  clip-path: inset(0 round 8px);
+
+  /* Добавьте эти свойства чтобы убрать разделитель */
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
+
+/* Если разделитель создается псевдоэлементом */
+.frame-image-info::before,
+.frame-image-info::after {
+  display: none;
+}
+
+/* Если разделитель в родительском контейнере */
+.frame-info-display {
+  border: none;
+  box-shadow: none;
+}
+
+/* Восстановленные полноценные стили описания кадра */
+.frame-description-info {
+  flex: 1;
+  overflow-y: auto;
+  line-height: 1.6;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 16px;
+  background: var(--card-bg);
+  color: white;
+  text-align: left;
+  hyphens: auto;
+  border-radius: 8px;
+  min-height: min-content;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.28s ease-in-out, transform 0.28s ease-in-out;
+}
+
+.frame-description-info.visible {
+  opacity: 1;
+  transform: translateY(0);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+}
+
+/* Стили скроллбара для .frame-info-display (восстановлены и подогнаны под padding-right:5px) */
+.frame-info-display::-webkit-scrollbar {
+  width: 8px;
+}
+
+.frame-info-display::-webkit-scrollbar-track {
+  background: transparent;
+  /* отступы внутри трека, согласованы с padding-right у контейнера */
+  margin: 12px 5px 12px 0;
+}
+
+.frame-info-display::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.38);
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.frame-info-display::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Firefox */
+.frame-info-display {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.38) transparent;
+}

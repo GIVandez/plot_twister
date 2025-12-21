@@ -1,0 +1,88 @@
+/* common.css - обновленные стили */
+:root{
+  --top-menu-height: 48px; /* приблизительная высота шапки (используется для ограничения main-container) */
+  --scroll-width: 0px;
+  --scroll-thumb: transparent;
+  --scroll-track: transparent;
+  --bg: #444;
+  --panel-bg: #333;
+  --card-bg: #555;
+  --muted: #666;
+}
+
+*{
+  box-sizing:border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+body{
+  margin:0;
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background:var(--bg);
+  color:#fff;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  zoom: 1;
+  min-width: 1200px;
+  overflow: hidden;
+}
+
+.main-container{
+  flex:1;
+  display:flex;
+  gap:5px;    /* расстояние между секциями: 5px */
+  padding: 5px; /* 5px со всех сторон: верх/право/низ/лево */
+  overflow: auto; /* allow internal scrolling when content taller than viewport */
+  min-height: 0; /* allow flex child to shrink (important for correct scrolling) */
+  max-height: calc(100vh - var(--top-menu-height)); /* never exceed viewport minus header */
+  position: relative; /* added so that absolute scrollbar is positioned relative to main container */
+}
+
+.custom-scrollbar,
+.scroll-track,
+.scroll-thumb{
+  display: none;
+}
+
+.no-select{user-select:none}
+
+.save-btn {
+  background-color: #3b82f6;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background-color: #2563eb;
+}
+
+@media (max-width: 1000px){
+  .page-display{ width:60%; aspect-ratio:3/4 }
+}
+
+@media (max-width: 768px) {
+  .frame-time {
+      padding: 6px 4px;
+      font-size: 14px;
+  }
+  .frame-time-edit {
+      padding: 4px 2px;
+      font-size: 14px;
+  }
+}

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Раскадровка и информация</title>
+  <link rel="stylesheet" href="common.css" />
+  <link rel="stylesheet" href="top-menu.css" />
+  <link rel="stylesheet" href="frames.css" />
+  <link rel="stylesheet" href="info.css" />
+  <link rel="stylesheet" href="page-selector.css" />
+</head>
+<body>
+  <header class="top-menu">
+    <div class="menu-buttons">
+      <!-- Оставлена только кнопка создания кадра -->
+      <button class="menu-btn add-frame-btn" title="Создать кадр">+</button>
+
+      <button class="menu-btn undo-btn" title="Отменить (Ctrl+Z)" aria-label="Отменить">⟲</button>
+      <button class="menu-btn redo-btn" title="Вернуть (Ctrl+Shift+Z)" aria-label="Вернуть">⟳</button>
+
+      <!-- Кнопка сохранения данных -->
+      <button class="menu-btn save-data-btn" title="Сохранить storyboard-data">Сохранить</button>
+
+      <!-- Статистика: обёрнута в контейнер для абсолютного позиционирования -->
+      <div class="menu-stats" id="menuStats" aria-hidden="false">
+        <!-- Статистика: количество кадров -->
+        <div class="menu-stat frames-stat" title="Общее количество кадров">
+          Кадров: <span id="framesCount" class="stat-value">0</span>
+        </div>
+
+        <!-- Статистика: общая длительность раскадровки -->
+        <div class="menu-stat duration-stat" title="Общая длительность раскадровки">
+          Длительность: <span id="storyDuration" class="stat-value">00:00</span>
+        </div>
+
+        <!-- Tabs для переключения вида: Раскадровка / Сценарий -->
+        <div class="view-tabs" role="tablist" aria-label="Выбор вида">
+          <button class="view-tab view-tab-board" role="tab" aria-selected="true">Раскадровка</button>
+          <button class="view-tab view-tab-script" role="tab" aria-selected="false">Сценарий</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Ползунок слева от storyboard-section — ПЕРЕД секцией -->
+    <div id="leftScrollbar" class="section-scrollbar" aria-hidden="true">
+    </div>
+
+    <!-- Левая часть — таблица кадров -->
+    <section class="storyboard-section">
+      <div class="storyboard-list" id="framesContainer" tabindex="0"></div>
+    </section>
+
+  <!-- Правая часть — информационная панель -->
+  <section class="info-section">
+      <!-- Отображение страницы сценария -->
+      <div class="page-display" id="pageDisplay">
+          <div class="page-controls" id="pageControls">
+              <input
+                type="text"
+                class="page-search-input"
+                id="pageSearchInput"
+                placeholder="Поиск страниц"
+              />
+              <button class="page-action-btn" id="pageLinkBtn">Связать</button>
+              <button class="page-action-btn" id="pageUnlinkBtn">Отвязать</button>
+          </div>
+          <div class="page-content" id="pageContent">
+              <!-- Текст страницы будет загружен здесь -->
+          </div>
+      </div>
+  </section>
+  </main>
+
+  <!-- Модальное окно выбора страницы для связки -->
+  <div class="page-selector-modal" id="pageSelectorModal">
+    <div class="page-selector-overlay"></div>
+    <div class="page-selector-content">
+      <div class="page-selector-carousel">
+        <button class="page-selector-arrow page-selector-arrow-left" id="pageSelectorLeft">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15,18 9,12 15,6"></polyline>
+          </svg>
+        </button>
+        <div class="page-selector-track-wrapper">
+          <div class="page-selector-track" id="pageSelectorTrack">
+            <!-- Страницы будут добавлены динамически -->
+          </div>
+        </div>
+        <button class="page-selector-arrow page-selector-arrow-right" id="pageSelectorRight">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,6 15,12 9,18"></polyline>
+          </svg>
+        </button>
+      </div>
+      <div class="page-selector-scrollbar">
+        <div class="page-selector-scrollbar-track">
+          <div class="page-selector-scrollbar-fill"></div>
+          <div class="page-selector-scrollbar-thumb" id="pageSelectorThumb"></div>
+        </div>
+      </div>
+      <button class="page-selector-confirm-btn" id="pageSelectorConfirm">Связать</button>
+    </div>
+  </div>
+
+  <!-- ЛЕВАЯ ЧАСТЬ -->
+  <script src="storyboard-data.js"></script>
+  <script src="storyboard-store.js"></script>
+  <script src="frames-render.js"></script>
+  <script src="frames-dragdrop.js"></script>
+  <script src="frames-add.js"></script>
+  
+  <!-- ДАННЫЕ И УПРАВЛЕНИЕ СТРАНИЦАМИ -->
+  <script src="page-info.js"></script>
+  <script src="frames-click.js"></script>
+
+
+  <script src="frames-blocks.js"></script>
+  <script src="page-selector.js"></script>
+
+  <!-- ОСНОВНОЙ СКРИПТ -->
+  <script>
+    // Переход на локальную страницу сценария по кнопке "Сценарий"
+    document.addEventListener('DOMContentLoaded', function () {
+      const scriptTab = document.querySelector('.view-tab.view-tab-script');
+      if (scriptTab) {
+        scriptTab.addEventListener('click', function (e) {
+          e.preventDefault();
+          // полный путь в формате file:///
+          window.location.href = 'file:///C:/Users/iluha/Desktop/pt/script/script.html';
+        });
+      }
+    });
+  </script>
+   <script src="main.js"></script>
+</body>
+</html>

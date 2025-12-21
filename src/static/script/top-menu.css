@@ -1,0 +1,185 @@
+/* Верхнее меню */
+.top-menu{
+  background:#333;
+  padding:6px; /* уменьшенная высота меню */
+  margin-bottom: 0; /* гарантируем отсутствие дополнительного отступа */
+  position: relative; /* нужно для абсолютного позиционирования .menu-stats */
+}
+
+.menu-buttons{
+  display:flex;
+  gap:8px;
+  align-items: center; /* выровнять по центру по высоте */
+
+  /* Подвинуть кнопку так, чтобы её левый край совпал с левым краем .frame.
+     Сдвинуть дополнительно на 3px влево. */
+  padding-left: calc(10px + 4px + 8px - 12px);
+}
+
+/* Сделать кнопки фиксированной высоты и аккуратными */
+.menu-btn {
+  background:#555;
+  color:#fff;
+  border:0;
+  height: 36px;              /* чуть уже по высоте */
+  min-width: 40px;
+  padding: 0 12px;
+  border-radius:6px;
+  cursor:pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Кнопка "+" — квадратная, знак по центру */
+.menu-btn.add-frame-btn {
+  /* Внешний вид как у .menu-stat .stat-value, но квадратная */
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  font-weight: 600;
+  box-sizing: border-box;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+
+/* Подогнать внешность кнопки "Сохранить" — оставить текстную, но по высоте как у квадрата */
+.menu-btn.save-data-btn {
+  /* Внешний вид как у .menu-stat .stat-value */
+  padding: 4px 8px;
+  height: 36px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 84px;
+  box-sizing: border-box;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+
+/* Undo / Redo buttons: квадратные, как кнопка "+" */
+.menu-btn.undo-btn,
+.menu-btn.redo-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  font-weight: 600;
+  box-sizing: border-box;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+
+/* Disabled state shared for menu buttons */
+.menu-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+  background: rgba(255,255,255,0.04);
+}
+
+/* Hover / active — согласованные с меню статистики */
+.menu-btn.add-frame-btn:hover,
+.menu-btn.save-data-btn:hover,
+.menu-btn.undo-btn:hover,
+.menu-btn.redo-btn:hover {
+  background: rgba(255,255,255,0.10);
+  transform: translateY(-1px) scale(1.02);
+}
+.menu-btn.add-frame-btn:active,
+.menu-btn.save-data-btn:active,
+.menu-btn.undo-btn:active,
+.menu-btn.redo-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Контейнер статистики — абсолютный блок, будет выровнен по JS */
+.menu-stats {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  right: 10px; /* fallback; реально выставит JS */
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* Статистика (количество кадров и длительность) */
+.menu-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-weight: 600;
+  padding: 0 8px;
+  height: 36px; /* согласовано с кнопками */
+  line-height: 1;
+  user-select: none;
+}
+.menu-stat .stat-value {
+  display: inline-block;
+  min-width: 48px;
+  text-align: center;
+  background: rgba(255,255,255,0.06);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: monospace;
+}
+
+/* Tabs для переключения вида (раскадровка / сценарий) */
+.view-tabs {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: 6px; /* небольшой отступ от статистики */
+}
+
+.view-tab {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  box-sizing: border-box;
+  transition: background 0.14s ease, transform 0.12s ease;
+}
+
+.view-tab[aria-selected="true"] {
+  background: rgba(255,255,255,0.10);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.view-tab:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.view-tab:active {
+  transform: scale(0.98);
+}
