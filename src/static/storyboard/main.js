@@ -1,5 +1,30 @@
 // main.js - обновленная инициализация
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    
+    // Function to get project ID from URL
+    function getProjectId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('project') || '1'; // Default to 1
+    }
+
+    // Load data from server
+    const projectId = getProjectId();
+    const store = window.storyboardStore;
+    if (store && store.loadFrames && store.loadPages) {
+        await Promise.all([
+            store.loadFrames(projectId),
+            store.loadPages(projectId)
+        ]);
+        // Re-render after loading data
+        if (window.renderFrames) {
+            window.renderFrames();
+        }
+        if (window.renderPages) {
+            window.renderPages();
+        }
+        // Update stats after loading
+        try { updateTopMenuStats(); } catch (e) { /* ignore */ }
+    }
     
     // Выравнивание блока статистики так, чтобы его правый край совпадал с правым краем .storyboard-section
     function alignMenuStats() {

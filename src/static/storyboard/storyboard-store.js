@@ -1,10 +1,7 @@
 (function () {
-  if (!window.storyboardData) {
-    return;
-  }
-
-  const frames = window.storyboardData.frames || [];
-  const pages = window.storyboardData.pages || {};
+  // Initialize empty data structures
+  const frames = [];
+  const pages = {};
 
   function normalizeKey(value) {
     return Number(value) || 0;
@@ -358,6 +355,54 @@
     };
   }
 
+  // API functions
+  const API_BASE = window.location.origin;
+
+  async function loadFrames(projectId) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/${projectId}/loadFrames`);
+      if (!response.ok) throw new Error('Failed to load frames');
+      const data = await response.json();
+      // Assuming data is an array of frames
+      frames.length = 0; // Clear existing
+      data.forEach(frame => {
+        frames.push({
+          frame_id: frame.frame_id,
+          description: frame.description,
+          start_time: frame.start_time,
+          end_time: frame.end_time,
+          pic_path: frame.pic_path,
+          connected: frame.connected_page_id || '',
+          number: frame.frame_number || frame.frame_id
+        });
+      });
+      return true;
+    } catch (error) {
+      console.error('Error loading frames:', error);
+      return false;
+    }
+  }
+
+  async function loadPages(projectId) {
+    try {
+      const response = await fetch(`${API_BASE}/api/page/${projectId}/loadPages`);
+      if (!response.ok) throw new Error('Failed to load pages');
+      const data = await response.json();
+      // Assuming data is an array of pages
+      Object.keys(pages).forEach(key => delete pages[key]); // Clear existing
+      data.forEach(page => {
+        pages[page.page_id] = {
+          number: page.page_number || page.page_id,
+          text: page.text || ''
+        };
+      });
+      return true;
+    } catch (error) {
+      console.error('Error loading pages:', error);
+      return false;
+    }
+  }
+
   window.storyboardStore = {
     getFrameIds,
     getFrameCount,
@@ -375,6 +420,8 @@
     getPageNumbers,
     getPageText,
     setPageText,
+    loadFrames,
+    loadPages,
     getSnapshot,
     setSnapshot,
     _suppressUndo: false
