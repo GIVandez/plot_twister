@@ -186,6 +186,11 @@ async def load_start_page():
 
 
 
-@router.get("/page")
+@router.get("/script")
 async def load_start_page():
-    return FileResponse(path="static/script/index.html")
+    return FileResponse(path="static/script/script.html")
+
+
+@router.get("/storyboard")
+async def load_start_page():
+    return FileResponse(path="static/storyboard/index.html")
