@@ -20,6 +20,7 @@
     
     <div class="section">
         <h3>2. Create New Page (POST)</h3>
+        Project ID: <input type="number" id="newProjectId" value="1">
         <button onclick="newPage()">Create New Page</button>
     </div>
     
@@ -84,7 +85,9 @@
         
         // 2. Create new page
         function newPage() {
-            makeRequest('POST', `${API_BASE}/api/page/newPage`);
+            const newProjectId = document.getElementById('newProjectId').value;
+            data = {"project_id": newProjectId}
+            makeRequest('POST', `${API_BASE}/api/page/newPage`, data);
         }
         
         // 3. Load single page text

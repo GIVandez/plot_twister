@@ -1,6 +1,9 @@
 from typing import Dict, Optional
 from database.repository import DatabaseRepository
 
+from database.base import engine
+from sqlalchemy.orm import sessionmaker
+from database.models import User
 
 class AdminModel:
     def __init__(self):
@@ -112,9 +115,6 @@ class AdminModel:
         """Вспомогательный метод для получения логина пользователя по ID"""
         # Нужно добавить метод в репозиторий или использовать сессию напрямую
         # Пока используем простой подход через сессию
-        from database.base import engine
-        from sqlalchemy.orm import sessionmaker
-        from database.models import User
         
         Session = sessionmaker(bind=engine)
         session = Session()

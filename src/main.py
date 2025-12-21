@@ -1,4 +1,4 @@
-from server.core import init_api
+from core import init_api
 
 from fastapi.middleware.cors import CORSMiddleware
 

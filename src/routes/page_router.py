@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from dto.page_dto import (
     PageInfo, LoadPagesResponse, DeletePageRequest, RedoPageRequest,
-    NewPageResponse, LoadPageResponse
+    NewPageResponse, LoadPageResponse, NewPageRequest
 )
 from project_data_models.page_model import PageModel
 from database.repository import DatabaseRepository
@@ -123,16 +123,16 @@ async def redo_page(request: RedoPageRequest):
 
 
 @router.post("/api/page/newPage", status_code=status.HTTP_201_CREATED, response_model=NewPageResponse)
-async def new_page(project_id: int = None):
+async def new_page(request: NewPageRequest = None):
     """Создание страницы в сценарии"""
     try:
-        # TODO: project_id должен передаваться через токен/сессию, но пока используем query параметр
-        # В спецификации API нет входных данных, но project_id необходим
-        if project_id is None:
+        if request is None or request.project_id is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="project_id не указан"
             )
+        
+        project_id = request.project_id
         
         # Проверяем существование проекта
         project_info = db_repo.read_project_info(project_id)

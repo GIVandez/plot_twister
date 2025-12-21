@@ -26,3 +26,7 @@ class NewPageResponse(BaseModel):
 
 class LoadPageResponse(BaseModel):
     text: str
+
+
+class NewPageRequest(BaseModel):
+    project_id: int

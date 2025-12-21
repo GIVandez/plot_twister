@@ -2,8 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
-from base import engine
-from models import User, Project, Page, Frame
+from database.base import engine
+from database.models import User, Project, Page, Frame
 
 import os
 from typing import Optional, Dict, List
