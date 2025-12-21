@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Text Editor — PlotTwister</title>
+	<link rel="stylesheet" href="TextEditor.css">
+</head>
+<body>
+	<div class="editor-container">
+		<!-- Left Toolbar -->
+		<aside class="toolbar">
+			<div class="toolbar-buttons">
+				<div class="undo-redo-row">
+					<button id="undoBtn" class="toolbar-btn" title="Отменить" data-action="undo">↶</button>
+					<button id="redoBtn" class="toolbar-btn" title="Повторить" data-action="redo">↷</button>
+				</div>
+				<div class="toolbar-divider"></div>
+				<button id="italicBtn" class="toolbar-btn" title="Курсив (Ctrl+I)" data-action="italic">
+					<em>I</em>
+				</button>
+				<button id="boldBtn" class="toolbar-btn" title="Жирный (Ctrl+B)" data-action="bold">
+					<strong>B</strong>
+				</button>
+				<button id="normalBtn" class="toolbar-btn" title="Обычный" data-action="normal">
+					A
+				</button>
+				<div class="toolbar-divider"></div>
+				<button id="leftAlignBtn" class="toolbar-btn" title="Слева" data-action="align-left">
+					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" height="16" width="16"> <g stroke="currentColor" stroke-linecap="round" stroke-width="2"> <path d="M4 6h16"></path> <path d="M4 10h13"></path> <path d="M4 14h16"></path> <path d="M4 18h5.5"></path> </g> </svg>
+				</button>
+				<button id="centerAlignBtn" class="toolbar-btn" title="Посередине" data-action="align-center">
+					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" height="16" width="16"> <g stroke="currentColor" stroke-linecap="round" stroke-width="2"> <path d="M4 6h16"></path> <path d="M7 10h10"></path> <path d="M4 14h16"></path> <path d="M9 18h6"></path> </g> </svg>
+				</button>
+				<button id="rightAlignBtn" class="toolbar-btn" title="Справа" data-action="align-right">
+					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" height="16" width="16"> <g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"> <polygon points="19.9 18 11.1 18 11.1 18 19.9 18 19.9 18"></polygon> <polygon points="20 14 4 14 4 14 20 14 20 14"></polygon> <polygon points="19.9 10 11.1 10 11.1 10 19.9 10 19.9 10"></polygon> <polygon points="20 6 4 6 4 6 20 6 20 6"></polygon> </g> </svg>
+				</button>
+			<div class="toolbar-divider"></div>
+			<div class="theme-buttons-row">
+				<button id="pageThemeToggleBtn" class="toolbar-btn" title="Тема страницы" data-action="page-theme-toggle">
+					<svg id="pageThemeToggleSvg" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--twemoji" preserveAspectRatio="xMidYMid meet" fill="#000000" height="35" width="35"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill="#5a5858" d="M32.415 9.586l-9-9a2.001 2.001 0 0 0-2.829 2.829l-3.859 3.859l9 9l3.859-3.859a2 2 0 0 0 2.829-2.829z"></path><path fill="#333333" d="M22 0H7a4 4 0 0 0-4 4v28a4 4 0 0 0 4 4h22a4 4 0 0 0 4-4V11h-9c-1 0-2-1-2-2V0z"></path><path fill="#e1e3e5" d="M22 0h-2v9a4 4 0 0 0 4 4h9v-2h-9c-1 0-2-1-2-2V0zm-5 8a1 1 0 0 1-1 1H8a1 1 0 0 1 0-2h8a1 1 0 0 1 1 1zm0 4a1 1 0 0 1-1 1H8a1 1 0 0 1 0-2h8a1 1 0 0 1 1 1zm12 4a1 1 0 0 1-1 1H8a1 1 0 0 1 0-2h20a1 1 0 0 1 1 1zm0 4a1 1 0 0 1-1 1H8a1 1 0 1 1 0-2h20a1 1 0 0 1 1 1zm0 4a1 1 0 0 1-1 1H8a1 1 0 1 1 0-2h20a1 1 0 0 1 1 1zm0 4a1 1 0 0 1-1 1H8a1 1 0 1 1 0-2h20a1 1 0 0 1 1 1z"></path></g></svg>
+				</button>
+				<button id="themeToggleBtn" class="toolbar-btn" title="Сменить тему" data-action="theme-toggle">
+					<svg id="themeToggleSvg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" height="35" width="35"><g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g> <circle cx="12" cy="9" r="7" fill="#2A4157" fill-opacity="0.24"></circle> <path d="M11 14V9.75C11 9.05964 10.4404 8.5 9.75 8.5V8.5C9.05964 8.5 8.5 9.05964 8.5 9.75V9.75C8.5 10.4404 9.05964 11 9.75 11H14.25C14.9404 11 15.5 10.4404 15.5 9.75V9.75C15.5 9.05964 14.9404 8.5 14.25 8.5V8.5C13.5596 8.5 13 9.05964 13 9.75V14" stroke="currentColor" stroke-linecap="round"></path> <path fill-rule="evenodd" clip-rule="evenodd" d="M15 16.5637C15 16.4535 14.885 16.3806 14.784 16.4245C13.9307 16.7947 12.9893 17 12 17C11.0107 17 10.0693 16.7947 9.21605 16.4245C9.11496 16.3806 9 16.4535 9 16.5637V18.5C9 19.8807 10.1193 21 11.5 21H12.5C13.8807 21 15 19.8807 15 18.5V16.5637Z" fill="currentColor"></path> </g></svg>
+				</button>
+			</div>
+			</div>
+
+			<div class="page-info">
+				<div class="page-number">
+					<span>Страница</span>
+					<input id="pageNumber" type="number" value="1" min="1" readonly>
+				</div>
+				<button id="saveBtn" class="save-btn">Сохранить</button>
+			</div>
+		</aside>
+
+		<!-- Main Content Area -->
+		<main class="content-area">
+			<div id="textContent" class="page-content" contenteditable="true" spellcheck="true"></div>
+		</main>
+	</div>
+
+	<script src="TextEditor.js"></script>
+</body>
+</html>

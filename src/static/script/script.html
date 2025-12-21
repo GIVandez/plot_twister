@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Страницы сценария</title>
+    <link rel="stylesheet" href="/static/storyboard/top-menu.css">
+    <link rel="stylesheet" href="/static/script/pagesList.css">
+</head>
+<body>
+    <header class="top-menu">
+        <div class="menu-buttons">
+            <!-- Кнопка создания страницы -->
+            <button class="menu-btn add-frame-btn" id="addPageBtn" title="Добавить страницу">+</button>
+            <!-- Кнопка сохранения данных -->
+            <button class="menu-btn save-data-btn" id="saveDataBtn" title="Сохранить storyboard-data">Сохранить</button>
+
+            <!-- Статистика: обёрнута в контейнер для абсолютного позиционирования -->
+            <div class="menu-stats" id="menuStats" aria-hidden="false">
+                <!-- Статистика: количество страниц -->
+                <div class="menu-stat frames-stat" title="Общее количество страниц">
+                    Страниц: <span id="pagesCount" class="stat-value">0</span>
+                </div>
+
+                <!-- Статистика: текущая страница -->
+                <div class="menu-stat duration-stat" title="Текущая страница">
+                    Текущая: <span id="currentPageNum" class="stat-value">1</span>
+                </div>
+
+                <!-- Tabs для переключения вида: Раскадровка / Сценарий -->
+                <div class="view-tabs" role="tablist" aria-label="Выбор вида">
+                    <button class="view-tab view-tab-board" role="tab" aria-selected="false">Раскадровка</button>
+                    <button class="view-tab view-tab-script" role="tab" aria-selected="true">Сценарий</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="carousel-container">
+            <button class="nav-arrow nav-arrow-left" id="prevBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15,18 9,12 15,6"></polyline>
+                </svg>
+            </button>
+
+            <div class="pages-carousel" id="pagesCarousel">
+                <!-- Pages will be rendered here -->
+            </div>
+
+            <button class="nav-arrow nav-arrow-right" id="nextBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9,6 15,12 9,18"></polyline>
+                </svg>
+            </button>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="progress-slider" id="progressSlider">
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+                <div class="progress-handle" id="progressHandle"></div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../storyboard/storyboard-data.js"></script>
+    <script src="/static/script/pagesList.js"></script>
+    <script>
+        // Переход на страницу раскадровки по кнопке "Раскадровка"
+        document.addEventListener('DOMContentLoaded', function () {
+            const boardTab = document.querySelector('.view-tab.view-tab-board');
+            if (boardTab) {
+                boardTab.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    window.location.href = '/static/storyboard/index.html';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

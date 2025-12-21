@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Раскадровка и информация</title>
-  <link rel="stylesheet" href="/static/script/common.css" />
-  <link rel="stylesheet" href="/static/script/top-menu.css" />
-  <link rel="stylesheet" href="/static/script/frames.css" />
-  <link rel="stylesheet" href="/static/script/info.css" />
-  <link rel="stylesheet" href="/static/script/page-selector.css" />
+  <link rel="stylesheet" href="/static/storyboard/common.css" />
+  <link rel="stylesheet" href="/static/storyboard/top-menu.css" />
+  <link rel="stylesheet" href="/static/storyboard/frames.css" />
+  <link rel="stylesheet" href="/static/storyboard/info.css" />
+  <link rel="stylesheet" href="/static/storyboard/page-selector.css" />
 </head>
 <body>
   <header class="top-menu">
@@ -106,19 +106,19 @@
   </div>
 
   <!-- ЛЕВАЯ ЧАСТЬ -->
-  <script src="/static/script/storyboard-data.js"></script>
-  <script src="/static/script/storyboard-store.js"></script>
-  <script src="/static/script/frames-render.js"></script>
-  <script src="/static/script/frames-dragdrop.js"></script>
-  <script src="/static/script/frames-add.js"></script>
+  <script src="/static/storyboard/storyboard-data.js"></script>
+  <script src="/static/storyboard/storyboard-store.js"></script>
+  <script src="/static/storyboard/frames-render.js"></script>
+  <script src="/static/storyboard/frames-dragdrop.js"></script>
+  <script src="/static/scrstoryboardipt/frames-add.js"></script>
   
   <!-- ДАННЫЕ И УПРАВЛЕНИЕ СТРАНИЦАМИ -->
-  <script src="/static/script/page-info.js"></script>
-  <script src="/static/script/frames-click.js"></script>
+  <script src="/static/storyboard/page-info.js"></script>
+  <script src="/static/storyboard/frames-click.js"></script>
 
 
-  <script src="/static/script/frames-blocks.js"></script>
-  <script src="/static/script/page-selector.js"></script>
+  <script src="/static/storyboard/frames-blocks.js"></script>
+  <script src="/static/storyboard/page-selector.js"></script>
 
   <!-- ОСНОВНОЙ СКРИПТ -->
   <script>
@@ -129,11 +129,11 @@
         scriptTab.addEventListener('click', function (e) {
           e.preventDefault();
           // полный путь в формате file:///
-          window.location.href = 'file:///C:/Users/iluha/Desktop/pt/script/script.html';
+          window.location.href = '/static/script/script.html';
         });
       }
     });
   </script>
-   <script src="/static/script/main.js"></script>
+   <script src="/static/storyboard/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,378 @@
+:root{
+  --bg:#434343;
+  --form-bg:#A7A7A7;
+  --input-bg:#D9D9D9;
+  --text:#414141;
+  --accent:#C30000;
+}
+*{box-sizing:border-box}
+body{
+    font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    margin:0;
+    padding:28px
+}
+.account-container{
+    margin:0 4%;
+    background:linear-gradient(180deg,#f3f3f3,#e8e8e8);
+    border-radius:12px;
+    padding:22px;
+    min-height:80vh
+}
+.acct-header{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-bottom:18px
+}
+.avatar{
+    width:100px;
+    height:100px;
+    border-radius:50%;
+    background:linear-gradient(180deg,#d9d9d9,#bfbfbf);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text);
+    font-weight:700;
+    font-size:20px;
+    overflow:hidden
+}
+.avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover
+}
+.user-meta{
+    display:flex;
+    flex-direction:column
+}
+.user-meta .email{
+    font-size:16px;
+    opacity:.86
+}
+.user-meta .login{
+    font-weight:700;
+    font-size:20px
+}
+.settings-gear{
+    margin-left:auto;
+    background:transparent;
+    border:0;
+    cursor:pointer;
+    width:38px;
+    height:38px;
+    border-radius:8px
+}
+.settings-gear svg{
+    width:30px;
+    height:30px;
+}
+
+.projects-area{
+    background:var(--form-bg);
+    border-radius:10px;
+    padding:18px;
+    min-height:75vh;
+    position:relative;
+    /* Ограничиваем высоту области проектов и делаем её прокручиваемой */
+    max-height: calc(100vh - 220px);
+    overflow: auto;
+    padding-right: 10px; /* место для скролла */
+}
+.projects-header{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:12px
+}
+.projects-header h2{
+    margin:0;
+    font-size:20px
+}
+
+.projects-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px
+}
+.proj-tile{
+    background:#2f2f2f;
+    color:#fff;
+    border-radius:8px;
+    padding:8px;
+    position:relative;
+    min-height:190px;
+    max-width: 290px;
+    display:flex;
+    flex-direction:column
+}
+.proj-image{
+    flex:1;
+    background: linear-gradient(180deg, #575757, #3f3b3b);
+    border-radius:6px
+}
+.proj-title{
+    margin-top:8px;
+    color:#fff;
+    font-size:14px;
+    text-align:center;
+    word-break:break-word
+}
+.proj-menu{
+    position:absolute;
+    right:8px;
+    top:8px;
+    background:transparent;
+    border:0;
+    color:#fff;
+    width:28px;
+    height:28px;
+    border-radius:6px;
+    cursor:pointer
+}
+.proj-menu svg{
+    width:18px;
+    height:18px
+}
+.proj-menu .menu-list{
+    position:absolute
+    ;right:0;
+    top:36px;
+    background:#fff;
+    color:var(--text);
+    padding:8px;
+    border-radius:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.18);
+    display:none
+}
+.proj-menu.open .menu-list{display:block}
+.menu-list button{
+    display:block;
+    border:0;
+    background:transparent;
+    padding:6px 8px;
+    width:120px;
+    text-align:left;
+    cursor:pointer
+}
+
+.create-center{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    border-radius:8px;
+    background:transparent;
+    border:2px dashed rgba(0,0,0,0.06);
+    cursor:pointer
+}
+.create-center .plus{
+    /* make add button match project page style: square, rounded, larger */
+    width:100px;
+    height:100px;
+    border-radius:16px;
+    border:0;
+    background:linear-gradient(180deg,#2f2f2f,#1f1f1f);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:56px;
+    line-height:1;
+    font-weight:700;
+    padding:0;
+    /* Use an absolutely positioned pseudo-element for pixel-perfect centering */
+    position:relative;
+    color: transparent; /* keep original text for screen readers, hide visual glyph */
+}
+.create-center .plus::before{
+    /* render a fixed SVG plus via data URI for pixel-perfect consistency */
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    /* thinner plus: narrower bars and centered using fractional coords */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='29.5' y='12' width='5' height='40' fill='%23ffffff'/><rect x='12' y='29.5' width='40' height='5' fill='%23ffffff'/></svg>");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+}
+.create-caption{
+    margin-top:8px;
+    color:var(--text);
+    opacity:.9
+}
+
+/* Modal overlay */
+.overlay{
+    position:fixed;
+    left:0;
+    top:0;
+    width:100vw;
+    height:100vh;
+    /* затемнение фона сделано сильнее для модалок */
+    background:rgba(0,0,0,0.72);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:80
+}
+.overlay.show{display:flex}
+.modal{
+    background:var(--form-bg);
+    width:66vw;
+    max-width:720px;
+    border-radius:10px;
+    padding:18px;
+    box-shadow:0 12px 36px rgba(0,0,0,0.28)
+}
+.confirm-modal{ max-width:480px; width:90%; }
+.btn.danger{ 
+    background:var(--accent); 
+    color:#fff 
+}
+.btn.danger:hover{ opacity:0.95 }
+.modal h3{margin-top:0}
+.modal .row{
+    display:flex;
+    gap:12px;
+    margin-top:12px
+}
+
+/* Для модалки создания/редактирования проекта: заголовок в одной строке,
+   выбор ориентации — на следующей (удаляем flex только для этой модалки) */
+#projectModalOverlay .modal .row{
+    display:block;
+}
+#projectModalOverlay .modal .row > div{
+    width:100%;
+}
+
+.modal label{
+    font-size:16px;
+    color:var(--text)
+}
+.modal input[type=text],.modal select{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid rgba(0,0,0,0.08);
+    background:var(--input-bg);
+    margin-bottom: 20px;
+    margin-top: 5px;
+    font-size: 16px;
+}
+.modal .actions{
+    /* контейнер для области действий в модалке */
+    display:block;
+    width:100%;
+    margin-top: 10%;
+}
+
+/* Внутренний ряд действий: одна строка с logout слева и правой группой кнопок */
+.modal .actions .actions-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    width:100%;
+    flex-wrap:nowrap; /* не переносить кнопки на новую строку */
+}
+.btn{
+    padding:8px 12px;
+    border-radius:8px;
+    border:0;
+    cursor:pointer
+}
+.btn.primary{
+    background:var(--text);
+    color:#fff
+}
+.btn.ghost{
+   margin-left: auto;
+}
+
+/* компактные кнопки в модалках */
+.modal .actions .btn{ 
+    padding: 10px 15px;
+    font-size:16px; 
+    white-space:nowrap 
+}
+.modal .actions .actions-row > #logoutBtn{ 
+    margin:0; 
+    flex:0 0 auto 
+}
+.modal .actions .actions-row > .right-buttons{ 
+    display:flex; 
+    gap:10px; 
+    margin-left:auto; 
+    flex:0 0 auto 
+}
+
+/* крупное превью аватара в модалке */
+.modal .avatar{
+    width:100px; 
+    height:100px; 
+    font-size:28px;     
+    margin: 0 auto;
+ }
+
+/* Стили кастомного выбора файла */
+.file-btn{ 
+    display:inline-block; 
+    padding:8px 12px; 
+    border-radius:8px; 
+    border:0; 
+    background:var(--text); 
+    color:#fff; 
+    cursor:pointer; 
+    font-size:14px 
+}
+.file-name{ 
+    margin-top:8px; 
+    font-size:13px; 
+    color:var(--text); 
+    opacity:.9 
+}
+.file-input-hidden{ display:none }
+
+/* Ориентация проекта (ряд кнопок) */
+.orient-row{ 
+    display:flex; 
+    gap: 10px; 
+    margin-top:8px 
+}
+.orient-btn{ 
+    flex:1; 
+    padding: 10px 15px; 
+    border-radius:8px; 
+    border:1px solid rgba(0,0,0,0.08); 
+    background:var(--input-bg); 
+    cursor:pointer;
+    font-size: 16px;
+}
+.orient-btn.active{ 
+    background:var(--text); 
+    color:#fff; 
+    border-color:var(--text) 
+}
+
+/* small screens */
+@media (max-width:920px){
+  .projects-grid{grid-template-columns:repeat(2,1fr)}
+  .modal{width:86vw}
+}
+
+/* немного стилей для скроллбара (Chromium) */
+.projects-area::-webkit-scrollbar{ width:10px }
+.projects-area::-webkit-scrollbar-thumb{ 
+    background:rgba(0,0,0,0.18); 
+    border-radius:6px 
+}

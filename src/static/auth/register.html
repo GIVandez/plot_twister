@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Регистрация — PlotTwister</title>
+	<link rel="stylesheet" href="/static/auth/login-register.css">
+</head>
+<body>
+	<a class="btn btn-primary invite" href="mainPage.html"> На главную </a>
+	<div class="form-wrap">
+		<form class="form-card" id="registerForm" action="#" method="post" novalidate>
+			<button type="button" class="rules-toggle" id="rulesToggle">?</button>
+			<h1>Регистрация</h1>
+
+			<div class="field" id="emailField">
+				<label for="email">Почта</label>
+				<input id="email" name="email" type="email" placeholder="Введите электронную почту" autocomplete="email" required maxlength="50">
+			</div>
+
+			<div class="field" id="usernameField">
+				<label for="username">Логин</label>
+				<input id="username" name="username" type="text" placeholder="Введите логин" autocomplete="username" required maxlength="20">
+			</div>
+
+		<div class="field password-wrap" id="passwordField">
+			<label for="password">Пароль</label>
+			<input id="password" name="password" type="password" placeholder="Введите пароль" autocomplete="new-password" required maxlength="20">
+			<button type="button" class="password-toggle" id="togglePassword" aria-label="Показать пароль">
+				<svg class="eye-open" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M15.0007 12C15.0007 13.6569 13.6576 15 12.0007 15C10.3439 15 9.00073 13.6569 9.00073 12C9.00073 10.3431 10.3439 9 12.0007 9C13.6576 9 15.0007 10.3431 15.0007 12Z" stroke="#414141" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+					<path d="M12.0012 5C7.52354 5 3.73326 7.94288 2.45898 12C3.73324 16.0571 7.52354 19 12.0012 19C16.4788 19 20.2691 16.0571 21.5434 12C20.2691 7.94291 16.4788 5 12.0012 5Z" stroke="#414141" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+				</svg>
+				<svg class="eye-closed" style="display:none;" viewBox="0 0 24 24" fill="#414141" xmlns="http://www.w3.org/2000/svg">
+					<path d="M4.71 3.29a1 1 0 0 0-1.42 1.42l5.63 5.63a3.5 3.5 0 0 0 4.74 4.74l5.63 5.63a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42zM12 13.5a1.5 1.5 0 0 1-1.5-1.5v-.07l1.56 1.56z"></path>
+					<path d="M12.22 17c-4.3.1-7.12-3.59-8-5a13.7 13.7 0 0 1 2.24-2.72L5 7.87a15.89 15.89 0 0 0-2.87 3.63 1 1 0 0 0 0 1c.63 1.09 4 6.5 9.89 6.5h.25a9.48 9.48 0 0 0 3.23-.67l-1.58-1.58a7.74 7.74 0 0 1-1.7.25z"></path>
+					<path d="M21.87 11.5c-.64-1.11-4.17-6.68-10.14-6.5a9.48 9.48 0 0 0-3.23.67l1.58 1.58a7.74 7.74 0 0 1 1.7-.25c4.29-.11 7.11 3.59 8 5a13.7 13.7 0 0 1-2.29 2.72L19 16.13a15.89 15.89 0 0 0 2.91-3.63 1 1 0 0 0-.04-1z"></path>
+				</svg>
+			</button>
+		</div>			<div class="error-messages" id="regErrors"></div>
+
+			<div class="submit-row">
+				<button class="btn-primary" id="registerBtn" type="submit">Зарегистрироваться</button>
+			</div>
+
+			<div class="muted">Уже есть аккаунт? <a href="login.html">Войти</a></div>
+
+			<aside class="rules-panel" id="rulesPanel" role="dialog" aria-hidden="true">
+				<h4>Правила ввода</h4>
+				<ol>
+					<li>Логин должен содержать хотя бы 1 букву. Допустимы цифры и символ <code>_</code>.</li>
+					<li>Пароль должен содержать минимум 4 цифры и 1 букву (любую).</li>
+					<li>Максимум 20 символов для логина и пароля.</li>
+				</ol>
+			</aside>
+		</form>
+	</div>
+	<script src="/static/auth/login-register.js"></script>
+</body>
+</html>

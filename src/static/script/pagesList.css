@@ -1,0 +1,308 @@
+:root {
+    --bg: #444;
+    --panel-bg: #333;
+    --card-bg: #555;
+    --muted: #666;
+    --accent: #bdbdbd;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background-color: var(--bg);
+    color: #fff;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Main content */
+.main-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 40px;
+    overflow: hidden;
+}
+
+/* Carousel container */
+.carousel-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 1400px;
+    position: relative;
+    transform: translateY(-10px); /* moved slightly up */
+}
+
+.nav-arrow {
+    position: absolute;
+    z-index: 100;
+    background: var(--muted);
+    border: none;
+    color: #ffffff;
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.nav-arrow:hover {
+    background: #777;
+    transform: scale(1.04);
+}
+
+.nav-arrow:active {
+    transform: scale(0.95);
+}
+
+.nav-arrow:disabled {
+    background: var(--card-bg);
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+}
+
+.nav-arrow-left {
+    left: 0;
+}
+
+.nav-arrow-right {
+    right: 0;
+}
+
+/* Pages carousel */
+.pages-carousel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 80vh; /* increased to fit larger cards */
+    position: relative;
+    perspective: 1500px;
+}
+
+/* Disable transitions when jumping */
+.pages-carousel.no-transition .page-card {
+    transition: none !important;
+}
+
+/* Page card */
+.page-card {
+    position: absolute;
+    --card-w: 400px;
+    --card-top-offset: 15px;
+    width: var(--card-w);
+    height: calc(var(--card-w) * 1.41421356 - var(--card-top-offset));
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+    /* Removed transition - now handled by JS lerp */
+    overflow: hidden;
+    cursor: pointer;
+    will-change: transform, filter;
+}
+
+.page-card-inner {
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-number {
+    font-size: 12px; /* smaller */
+    font-weight: 600;
+    color: #666;
+    display: block;
+    text-align: center;
+}
+
+.page-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    padding: 0; /* убрать отступы с краёв */
+}
+
+.page-text,
+.page-card .page-content > * {
+    margin: 0;
+    padding: 0;
+}
+
+.page-text {
+    /* full-width text inside page-content */
+    display: -webkit-box; /* keeps clamp behaviour */
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #333;
+    text-align: left;
+    overflow: hidden;
+    -webkit-line-clamp: 22; /* increase visible lines on large screens */
+    -webkit-box-orient: vertical;
+    word-wrap: break-word;
+    hyphens: auto;
+    margin-top: 20px; /* опустить текст на 20px */
+}
+
+/* Hover effect for non-center cards */
+.page-card:hover {
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Footer with progress slider */
+.footer {
+    padding: 0;
+    background: transparent;
+    border: none;
+    position: absolute;
+    bottom: 16px; /* lowered so progress line sits closer to bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 560px; /* wider to match larger layout */
+    z-index: 50;
+}
+
+.progress-slider {
+    position: relative;
+    padding: 15px 0;
+    cursor: pointer;
+    transform: translateY(5px); /* lowered by 5px */
+}
+
+.progress-track {
+    position: relative;
+    height: 6px;
+    background: var(--muted);
+    border-radius: 6px;
+    overflow: visible;
+}
+
+.progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 6px;
+    transition: none;
+}
+
+.progress-handle {
+    position: absolute;
+    top: 50%;
+    width: 20px; /* чуть больше для удобства */
+    height: 20px; /* чтобы была равная ширина/высота */
+    background: #fff;
+    border: 2px solid var(--accent);
+    border-radius: 50%; /* делаем кругом */
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    z-index: 10;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.progress-handle:hover {
+    transform: translate(-50%, -50%) scale(1.15);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.progress-handle:active,
+.progress-handle.dragging {
+    cursor: grabbing;
+    transform: translate(-50%, -50%) scale(1.2);
+}
+
+.page-footer {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+/* Button styles for page deletion */
+.page-delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #8b6f58; /* тёмный бежевый */
+    font-size: 18px;
+    line-height: 28px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 4px;
+}
+.page-delete-btn.inactive {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: default;
+}
+.page-delete-btn:focus {
+    outline: 2px solid rgba(139,111,88,0.18);
+    outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .page-card {
+        --card-w: 360px;
+    }
+
+    .footer {
+        width: 460px;
+    }
+
+    .carousel-container {
+        transform: translateY(-20px);
+    }
+
+    .page-text {
+        -webkit-line-clamp: 18;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 900px) {
+    .page-card {
+        --card-w: 300px;
+    }
+
+    .page-text {
+        font-size: 12px;
+        -webkit-line-clamp: 16;
+    }
+
+    .footer {
+        width: 340px;
+    }
+
+    .carousel-container {
+        transform: translateY(-20px);
+    }
+}

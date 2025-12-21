@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Проект — PlotTwister</title>
+  <link rel="stylesheet" href="/static/project/account.css">
+  <link rel="stylesheet" href="/static/project/ProjectMainPage.css">
+</head>
+<body>
+  <div class="account-container">
+    <header class="acct-header">
+      <div style="display:flex;align-items:center;gap:12px;width:100%">
+        <input id="projTitle" class="proj-title-input" value="Название проекта" />
+        <button id="backBtn" title="Вернуться" style="margin-left:auto" class="btn">✕</button>
+      </div>
+    </header>
+
+    <main class="projects-area project-main">
+      <div class="center-row" id="centerRow">
+        <div class="plus-tile" data-type="story">
+          <button class="big-plus" aria-label="Добавить раскадровку">+</button>
+          <div class="caption">Добавить раскадровку</div>
+        </div>
+
+        <div class="plus-tile" data-type="script">
+          <button class="big-plus" aria-label="Добавить сценарий">+</button>
+          <div class="caption">Добавить сценарий</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- template icons are created by JS/CSS -->
+  <!-- Confirm delete modal -->
+  <div class="overlay" id="confirmOverlay" aria-hidden="true">
+    <div class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h3 id="confirmTitle">Подтвердите действие</h3>
+      <p id="confirmMessage">Вы уверены, что хотите удалить элемент?</p>
+      <div class="actions">
+        <button class="btn ghost" id="confirmCancel">Отмена</button>
+        <button class="btn danger" id="confirmOk">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/project/ProjectMainPage.js"></script>
+</body>
+</html>
+
