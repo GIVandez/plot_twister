@@ -98,13 +98,13 @@
         }
         
         // 1. Load frames
-        function loadFrames() {
+        async function loadFrames() {
             const projectId = document.getElementById('projectId').value;
             makeRequest('GET', `${API_BASE}/api/frame/${projectId}/loadFrames`);
         }
         
         // 2. Create new frame
-        function newFrame() {
+        async function newFrame() {
             const data = {
                 project_id: parseInt(document.getElementById('newProjectId').value),
                 description: document.getElementById('description').value,
@@ -116,7 +116,7 @@
         }
         
         // 3. Drag and drop
-        function dragDrop() {
+        async function dragDrop() {
             const data = {
                 frame_id: parseInt(document.getElementById('dragFrameId').value),
                 frame_number: parseInt(document.getElementById('newPosition').value)
@@ -125,7 +125,7 @@
         }
         
         // 4. Update start time
-        function updateStartTime() {
+        async function updateStartTime() {
             const data = {
                 frame_id: parseInt(document.getElementById('timeFrameId').value),
                 start_time: parseInt(document.getElementById('newStartTime').value)
@@ -134,7 +134,7 @@
         }
         
         // 5. Update end time
-        function updateEndTime() {
+        async function updateEndTime() {
             const data = {
                 frame_id: parseInt(document.getElementById('timeFrameId').value),
                 end_time: parseInt(document.getElementById('newEndTime').value)
@@ -143,7 +143,7 @@
         }
         
         // 6. Update description
-        function updateDescription() {
+        async function updateDescription() {
             const data = {
                 frame_id: parseInt(document.getElementById('descFrameId').value),
                 description: document.getElementById('newDescription').value
@@ -152,7 +152,7 @@
         }
         
         // 7. Delete frame
-        function deleteFrame() {
+        async function deleteFrame() {
             const data = {
                 frame_id: parseInt(document.getElementById('deleteFrameId').value)
             };
@@ -160,7 +160,7 @@
         }
         
         // 8. Upload image
-        function uploadImage() {
+        async function uploadImage() {
             const frameId = document.getElementById('uploadFrameId').value;
             const fileInput = document.getElementById('imageFile');
             
@@ -180,7 +180,7 @@
         }
         
         // 9. Delete image
-        function deleteImage() {
+        async function deleteImage() {
             const data = {
                 frame_id: parseInt(document.getElementById('deleteImageFrameId').value)
             };
