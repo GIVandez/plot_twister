@@ -17,6 +17,8 @@ from routes import admin_router, frame_router, graphic_editor_router, page_route
 # uv sync
 
 app = FastAPI()
+
+
 # Монтируем папку стилей и скриптов
 app.mount("/account", StaticFiles(directory="D:/Code/five/plot_twister/src/static/account"), name="account")
 app.mount("/admin", StaticFiles(directory="D:/Code/five/plot_twister/src/static/admin"), name="admin")
@@ -24,7 +26,10 @@ app.mount("/script", StaticFiles(directory="D:/Code/five/plot_twister/src/static
 app.mount("/storyboard", StaticFiles(directory="D:/Code/five/plot_twister/src/static/storyboard"), name="storyboard")
 app.mount("/auth", StaticFiles(directory="D:/Code/five/plot_twister/src/static/auth"), name="auth")
 app.mount("/project", StaticFiles(directory="D:/Code/five/plot_twister/src/static/project"), name="project")
+app.mount("/storyboard", StaticFiles(directory="D:/Code/five/plot_twister/src/static/storyboard"), name="storyboard")
 app.mount("/static", StaticFiles(directory="D:/Code/five/plot_twister/src/static"), name="static")
+
+
 
 app.include_router(auth_router.router)
 app.include_router(admin_router.router)
