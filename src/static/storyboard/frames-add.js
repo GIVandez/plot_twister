@@ -2,50 +2,34 @@
 function initAddFrameButton() {
     const addButton = document.querySelector('.menu-btn'); // Первая кнопка в меню
     
-    function createNewFrame() {
+    async function createNewFrame() {
         const store = window.storyboardStore;
-        if (!store) {
+        if (!store || !store.newFrame) {
             return;
         }
-        // Находим максимальный ID среди существующих кадров
-        const newId = store.getNextFrameId();
         
-        // Создаем новый кадр с данными по умолчанию
-        const newFrame = {
-            id: newId,
-            image: `IMG_${String(newId).padStart(3, '0')}`,
-            description: `Описание нового кадра ${newId}`,
-            start: calculateDefaultStartTime(),
-            end: calculateDefaultEndTime(),
-            shotSize: "Medium Shot", // значение по умолчанию
-            connectedPage: null // нет привязанной страницы
-        };
+        const projectId = window.currentProjectId || 1;
+        const startTime = calculateDefaultStartTime();
+        const endTime = calculateDefaultEndTime();
         
-        // Сохраняем текущий скролл контейнера перед перерисовкой,
-        // чтобы предотвратить кратковременную прокрутку вверх
-        const container = document.getElementById('framesContainer');
-        const prevScroll = container ? container.scrollTop : null;
-
-        // Добавляем новый кадр в данные и перерисовываем кадры
-        const newFrameIndex = store.addFrame(newFrame);
-        if (window.renderFrames) {
-            window.renderFrames();
+        // Create new frame via API
+        const result = await store.newFrame(projectId, `Описание нового кадра`, startTime, endTime, null);
+        if (result) {
+            // Reload and render
+            if (window.renderFrames) {
+                window.renderFrames();
+            }
+            // Show info for the new frame
+            const frames = store.getFrames();
+            const newFrameIndex = frames.length - 1;
+            showNewFrameInfo(newFrameIndex);
+            
+            // Scroll to new frame
+            setTimeout(() => {
+                const newId = result.frame_id;
+                scrollToNewFrame(newId, newFrameIndex);
+            }, 100);
         }
-
-        // Восстанавливаем прежний скролл, если он был сохранён
-        if (container && prevScroll != null) {
-            container.scrollTop = prevScroll;
-        }
-
-        const indexForInfo = typeof newFrameIndex === 'number' ? newFrameIndex : store.getFrameCount() - 1;
-        
-        // Показываем информацию о новом кадре в правой панели
-        showNewFrameInfo(indexForInfo);
-        
-        // Прокручиваем к новому кадру (оставляем небольшую задержку для устойчивости)
-        setTimeout(() => {
-            scrollToNewFrame(newId, indexForInfo);
-        }, 100);
     }
     
     function calculateDefaultStartTime() {

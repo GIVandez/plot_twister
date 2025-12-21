@@ -907,6 +907,12 @@ function initFramesDragDrop() {
                 const prevScroll = container ? container.scrollTop : null;
                 
                 syncOrderFromDOM();
+                // Sync with server
+                const store = window.storyboardStore;
+                if (store && store.loadFrames) {
+                    const projectId = window.currentProjectId || 1;
+                    store.loadFrames(projectId);
+                }
                 // небольшая отложенная перерисовка чтобы DOM успел обновиться
                 setTimeout(() => {
                     if (window.renderFrames) window.renderFrames();

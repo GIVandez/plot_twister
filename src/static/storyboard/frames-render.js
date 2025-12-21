@@ -260,15 +260,21 @@ async function editDescription(index, descDiv) {
     }
 
     // Сохранение редактирования — возвращает Promise
-    function saveDescription() {
+    async function saveDescription() {
         // создаём "замок" на время анимации
         let resolver;
         window.descriptionAnimationPromise = new Promise((res) => { resolver = res; });
 
-        return new Promise((resolve) => {
+        return new Promise(async (resolve) => {
             const newDescription = textarea.value;
-            // Обновляем данные
-            store.setFrameValuesByIndex(index, { description: newDescription });
+            // Update via API
+            const frameData = store.getFrameByIndex(index);
+            if (frameData && store.redoDescription) {
+                await store.redoDescription(frameData.frame_id, newDescription);
+            } else {
+                // Fallback to local update
+                store.setFrameValuesByIndex(index, { description: newDescription });
+            }
             
             // Сохраняем полный текст
             descDiv.dataset.fullText = newDescription;
@@ -386,7 +392,7 @@ function renderFrames() {
         timeStartEdit.type = 'text';
         timeStartEdit.value = formatTime(frame.start);
         timeStartEdit.style.display = 'none';
-        timeStartEdit.addEventListener('blur', () => saveTime(index, 'start', timeStartEdit, timeStartDiv));
+        timeStartEdit.addEventListener('blur', async () => { await saveTime(index, 'start', timeStartEdit, timeStartDiv); });
         timeStartEdit.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 timeStartEdit.blur();
@@ -421,7 +427,7 @@ function renderFrames() {
         timeEndEdit.type = 'text';
         timeEndEdit.value = formatTime(frame.end);
         timeEndEdit.style.display = 'none';
-        timeEndEdit.addEventListener('blur', () => saveTime(index, 'end', timeEndEdit, timeEndDiv));
+        timeEndEdit.addEventListener('blur', async () => { await saveTime(index, 'end', timeEndEdit, timeEndDiv); });
         timeEndEdit.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 timeEndEdit.blur();
@@ -513,9 +519,9 @@ function renderFrames() {
         deleteBtn.className = 'frame-delete-btn';
         deleteBtn.innerHTML = '×';
         deleteBtn.title = 'Удалить кадр';
-        deleteBtn.addEventListener('click', (e) => {
+        deleteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            deleteFrame(index);
+            await deleteFrame(index);
         });
 
         frameDiv.appendChild(imgDiv);
@@ -558,7 +564,7 @@ function editTime(index, type, timeDiv) {
     }, 0);
 }
 
-function saveTime(index, type, editInput, timeDiv) {
+async function saveTime(index, type, editInput, timeDiv) {
     const newTime = parseTime(editInput.value);
     const store = window.storyboardStore;
     if (!store) return;
@@ -577,28 +583,13 @@ function saveTime(index, type, editInput, timeDiv) {
             alert('Время конца должно быть больше времени начала');
             editInput.value = formatTime(frame[type]);
         } else {
-            if (type === 'end') {
-                // Агрегируем изменения в одно действие undo:
-                const before = store.getSnapshot ? store.getSnapshot() : null;
-                // Подавляем создание отдельных undo-записей во время пакетной операции
-                store._suppressUndo = true;
-
-                const oldEnd = frame.end;
-                const delta = newTime - oldEnd;
-                // Сохраняем новый end для текущего кадра
-                store.setFrameValuesByIndex(index, { end: newTime });
-                if (delta !== 0) {
-                    shiftFramesFromIndex(index + 1, delta);
-                }
-
-                // Выключаем подавление и пушим единое действие
-                store._suppressUndo = false;
-                const after = store.getSnapshot ? store.getSnapshot() : null;
-                if (window.undoManager && before && after) {
-                    window.undoManager.pushAction({ type: 'time-end', before, after, meta: { index } });
-                }
+            // Update via API
+            if (type === 'start' && store.redoStartTime) {
+                await store.redoStartTime(frame.frame_id, newTime);
+            } else if (type === 'end' && store.redoEndTime) {
+                await store.redoEndTime(frame.frame_id, newTime);
             } else {
-                // Для start просто сохраняем (обычно одиночное действие)
+                // Fallback
                 store.setFrameValuesByIndex(index, { [type]: newTime });
             }
 
@@ -631,32 +622,26 @@ function shiftFramesFromIndex(startIndex, delta) {
 }
 window.shiftFramesFromIndex = shiftFramesFromIndex;
 
-function deleteFrame(index) {
+async function deleteFrame(index) {
     if (!confirm('Вы уверены, что хотите удалить этот кадр?')) return;
     const store = window.storyboardStore;
     if (!store) return;
 
-    // Получаем удаляемый кадр и его длительность
-    const removedFrame = store.getFrameByIndex(index);
-    const removedDuration = removedFrame ? Math.max(0, removedFrame.end - removedFrame.start) : 0;
+    const frame = store.getFrameByIndex(index);
+    if (!frame) return;
 
-    // Удаляем кадр
-    store.removeFrameByIndex(index);
-
-    // Смещаем все последующие кадры на -removedDuration (влево)
-    if (removedDuration > 0) {
-        shiftFramesFromIndex(index, -removedDuration);
-    }
-
-    if (window.renderFrames) {
-        window.renderFrames();
-    }
-
-    // Обновляем скроллбар после удаления
-    setTimeout(() => {
-        if (window.updateLeftScrollbar) {
-            window.updateLeftScrollbar();
+    // Delete via API
+    const success = await store.deleteFrame(frame.frame_id);
+    if (success) {
+        if (window.renderFrames) {
+            window.renderFrames();
         }
+
+        // Обновляем скроллбар после удаления
+        setTimeout(() => {
+            if (window.updateLeftScrollbar) {
+                window.updateLeftScrollbar();
+            }
     }, 0);
 }
 

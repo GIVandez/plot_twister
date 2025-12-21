@@ -117,9 +117,9 @@ function renderFramesLegacy() {
         deleteBtn.className = 'frame-delete-btn';
         deleteBtn.innerHTML = '×';
         deleteBtn.title = 'Удалить кадр';
-        deleteBtn.addEventListener('click', (e) => {
+        deleteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            deleteFrame(index);
+            await deleteFrame(index);
         });
 
         frameDiv.appendChild(imgDiv);

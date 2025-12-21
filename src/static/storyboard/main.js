@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load data from server
     const projectId = getProjectId();
+    window.currentProjectId = projectId; // Store for later use
     const store = window.storyboardStore;
     if (store && store.loadFrames && store.loadPages) {
         await Promise.all([

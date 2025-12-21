@@ -403,6 +403,183 @@
     }
   }
 
+  // Other API functions
+  async function newFrame(projectId, description, startTime, endTime, connectedPageId) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/newFrame`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          description: description || '',
+          start_time: startTime,
+          end_time: endTime,
+          connected_page_id: connectedPageId || null
+        })
+      });
+      if (!response.ok) throw new Error('Failed to create frame');
+      const data = await response.json();
+      // Assuming response has frame_id
+      // Reload frames to get updated list
+      await loadFrames(projectId);
+      return data;
+    } catch (error) {
+      console.error('Error creating frame:', error);
+      return null;
+    }
+  }
+
+  async function dragAndDropFrame(frameId, newPosition) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/dragAndDropFrame`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frame_id: frameId,
+          frame_number: newPosition
+        })
+      });
+      if (!response.ok) throw new Error('Failed to move frame');
+      // Reload frames
+      const projectId = getProjectIdFromFrames();
+      if (projectId) await loadFrames(projectId);
+      return true;
+    } catch (error) {
+      console.error('Error moving frame:', error);
+      return false;
+    }
+  }
+
+  async function redoStartTime(frameId, startTime) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/redoStartTime`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frame_id: frameId,
+          start_time: startTime
+        })
+      });
+      if (!response.ok) throw new Error('Failed to update start time');
+      // Update local frame
+      const frame = frames.find(f => f.frame_id === frameId);
+      if (frame) frame.start_time = startTime;
+      return true;
+    } catch (error) {
+      console.error('Error updating start time:', error);
+      return false;
+    }
+  }
+
+  async function redoEndTime(frameId, endTime) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/redoEndTime`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frame_id: frameId,
+          end_time: endTime
+        })
+      });
+      if (!response.ok) throw new Error('Failed to update end time');
+      // Update local frame
+      const frame = frames.find(f => f.frame_id === frameId);
+      if (frame) frame.end_time = endTime;
+      return true;
+    } catch (error) {
+      console.error('Error updating end time:', error);
+      return false;
+    }
+  }
+
+  async function redoDescription(frameId, description) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/redoDescription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frame_id: frameId,
+          description: description
+        })
+      });
+      if (!response.ok) throw new Error('Failed to update description');
+      // Update local frame
+      const frame = frames.find(f => f.frame_id === frameId);
+      if (frame) frame.description = description;
+      return true;
+    } catch (error) {
+      console.error('Error updating description:', error);
+      return false;
+    }
+  }
+
+  async function deleteFrame(frameId) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/deleteFrame`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frame_id: frameId
+        })
+      });
+      if (!response.ok) throw new Error('Failed to delete frame');
+      // Remove from local frames
+      const index = frames.findIndex(f => f.frame_id === frameId);
+      if (index !== -1) frames.splice(index, 1);
+      return true;
+    } catch (error) {
+      console.error('Error deleting frame:', error);
+      return false;
+    }
+  }
+
+  async function uploadImage(frameId, imageFile) {
+    try {
+      const formData = new FormData();
+      formData.append('frame_id', frameId);
+      formData.append('picture', imageFile);
+
+      const response = await fetch(`${API_BASE}/api/frame/uploadImage`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) throw new Error('Failed to upload image');
+      const data = await response.json();
+      // Update local frame pic_path if needed
+      const frame = frames.find(f => f.frame_id === frameId);
+      if (frame && data.pic_path) frame.pic_path = data.pic_path;
+      return data;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+  }
+
+  async function deleteImage(frameId) {
+    try {
+      const response = await fetch(`${API_BASE}/api/graphic/deleteImage`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frame_id: frameId
+        })
+      });
+      if (!response.ok) throw new Error('Failed to delete image');
+      // Update local frame
+      const frame = frames.find(f => f.frame_id === frameId);
+      if (frame) frame.pic_path = null;
+      return true;
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      return false;
+    }
+  }
+
+  // Helper function to get project ID from frames
+  function getProjectIdFromFrames() {
+    return window.currentProjectId || 1;
+  }
+
   window.storyboardStore = {
     getFrameIds,
     getFrameCount,
@@ -422,6 +599,14 @@
     setPageText,
     loadFrames,
     loadPages,
+    newFrame,
+    dragAndDropFrame,
+    redoStartTime,
+    redoEndTime,
+    redoDescription,
+    deleteFrame,
+    uploadImage,
+    deleteImage,
     getSnapshot,
     setSnapshot,
     _suppressUndo: false
