@@ -78,26 +78,26 @@
         }
         
         // 1. Load pages for project
-        function loadPages() {
+        async function loadPages() {
             const projectId = document.getElementById('projectId').value;
             makeRequest('GET', `${API_BASE}/api/page/${projectId}/loadPages`);
         }
         
         // 2. Create new page
-        function newPage() {
+        async function newPage() {
             const newProjectId = document.getElementById('newProjectId').value;
             data = {"project_id": newProjectId}
             makeRequest('POST', `${API_BASE}/api/page/newPage`, data);
         }
         
         // 3. Load single page text
-        function loadSinglePage() {
+        async function loadSinglePage() {
             const pageId = document.getElementById('loadPageId').value;
             makeRequest('GET', `${API_BASE}/api/page/${pageId}/loadPage`);
         }
         
         // 4. Edit page
-        function editPage() {
+        async function editPage() {
             const data = {
                 page_id: parseInt(document.getElementById('editPageId').value),
                 text: document.getElementById('pageText').value
@@ -106,7 +106,7 @@
         }
         
         // 5. Delete page
-        function deletePage() {
+        async function deletePage() {
             const data = {
                 page_id: parseInt(document.getElementById('deletePageId').value)
             };
