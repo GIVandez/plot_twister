@@ -270,7 +270,7 @@ async function editDescription(index, descDiv) {
             // Update via API
             const frameData = store.getFrameByIndex(index);
             if (frameData && store.redoDescription) {
-                await store.redoDescription(frameData.frame_id, newDescription);
+                await store.redoDescription(frameData.id, newDescription);
             } else {
                 // Fallback to local update
                 store.setFrameValuesByIndex(index, { description: newDescription });
@@ -583,14 +583,22 @@ async function saveTime(index, type, editInput, timeDiv) {
             alert('Время конца должно быть больше времени начала');
             editInput.value = formatTime(frame[type]);
         } else {
-            // Update via API
+            // Calculate delta for domino effect
+            const oldValue = frame[type];
+            const delta = newTime - oldValue;
+
+            // Update current frame via API
             if (type === 'start' && store.redoStartTime) {
-                await store.redoStartTime(frame.frame_id, newTime);
+                await store.redoStartTime(frame.id, newTime);
             } else if (type === 'end' && store.redoEndTime) {
-                await store.redoEndTime(frame.frame_id, newTime);
+                await store.redoEndTime(frame.id, newTime);
             } else {
-                // Fallback
                 store.setFrameValuesByIndex(index, { [type]: newTime });
+            }
+
+            // Domino effect: shift subsequent frames when end time changes
+            if (type === 'end' && delta !== 0) {
+                await shiftFramesFromIndexWithAPI(index + 1, delta);
             }
 
             timeDiv.textContent = formatTime(newTime);
@@ -608,7 +616,29 @@ async function saveTime(index, type, editInput, timeDiv) {
     timeDiv.style.display = 'flex';
 }
 
-// Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд (delta может быть отрицательным)
+// Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд с отправкой на сервер
+async function shiftFramesFromIndexWithAPI(startIndex, delta) {
+    const store = window.storyboardStore;
+    if (!store || !Number.isFinite(delta) || delta === 0) return;
+    
+    const frameCount = store.getFrameCount();
+    for (let i = startIndex; i < frameCount; i++) {
+        const f = store.getFrameByIndex(i);
+        if (!f) continue;
+        const newStart = Math.max(0, Math.round(f.start + delta));
+        const newEnd = Math.max(newStart, Math.round(f.end + delta));
+        
+        // Update via API
+        if (store.redoStartTime) {
+            await store.redoStartTime(f.id, newStart);
+        }
+        if (store.redoEndTime) {
+            await store.redoEndTime(f.id, newEnd);
+        }
+    }
+}
+
+// Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд (локально, без API)
 function shiftFramesFromIndex(startIndex, delta) {
     const store = window.storyboardStore;
     if (!store || !Number.isFinite(delta) || delta === 0) return;
@@ -631,7 +661,7 @@ async function deleteFrame(index) {
     if (!frame) return;
 
     // Delete via API
-    const success = await store.deleteFrame(frame.frame_id);
+    const success = await store.deleteFrame(frame.id);
     if (success) {
         if (window.renderFrames) {
             window.renderFrames();

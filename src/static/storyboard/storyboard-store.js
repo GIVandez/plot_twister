@@ -410,11 +410,11 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          project_id: projectId,
+          project_id: Number(projectId),
           description: description || '',
-          start_time: startTime,
-          end_time: endTime,
-          connected_page_id: connectedPageId || null
+          start_time: Number(startTime),
+          end_time: Number(endTime),
+          connected_page_id: connectedPageId ? Number(connectedPageId) : null
         })
       });
       if (!response.ok) throw new Error('Failed to create frame');
@@ -435,8 +435,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          frame_id: frameId,
-          frame_number: newPosition
+          frame_id: Number(frameId),
+          frame_number: Number(newPosition)
         })
       });
       if (!response.ok) throw new Error('Failed to move frame');
@@ -456,8 +456,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          frame_id: frameId,
-          start_time: startTime
+          frame_id: Number(frameId),
+          start_time: Number(startTime)
         })
       });
       if (!response.ok) throw new Error('Failed to update start time');
@@ -477,8 +477,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          frame_id: frameId,
-          end_time: endTime
+          frame_id: Number(frameId),
+          end_time: Number(endTime)
         })
       });
       if (!response.ok) throw new Error('Failed to update end time');
@@ -498,7 +498,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          frame_id: frameId,
+          frame_id: Number(frameId),
           description: description
         })
       });
@@ -519,7 +519,7 @@
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          frame_id: frameId
+          frame_id: Number(frameId)
         })
       });
       if (!response.ok) throw new Error('Failed to delete frame');
@@ -536,7 +536,7 @@
   async function uploadImage(frameId, imageFile) {
     try {
       const formData = new FormData();
-      formData.append('frame_id', frameId);
+      formData.append('frame_id', Number(frameId));
       formData.append('picture', imageFile);
 
       const response = await fetch(`${API_BASE}/api/frame/uploadImage`, {
@@ -561,7 +561,7 @@
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          frame_id: frameId
+          frame_id: Number(frameId)
         })
       });
       if (!response.ok) throw new Error('Failed to delete image');
