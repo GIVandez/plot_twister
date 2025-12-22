@@ -25,8 +25,6 @@ app = FastAPI()
 current_dir = Path(__file__).parent.parent
 static_path = current_dir / "static" / "account"
 
-app.mount("/account", StaticFiles(directory=str(static_path)), name="account")
-
 # Монтируем папку стилей и скриптов
 app.mount("/account", StaticFiles(directory=f"{current_dir}/static/account"), name="account")
 app.mount("/admin", StaticFiles(directory=f"{current_dir}/static/admin"), name="admin")
