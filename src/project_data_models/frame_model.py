@@ -132,12 +132,10 @@ class FrameModel:
         Returns:
             success: bool - успешность операции
         """
-        print(f"[reorder_frames] Called with project_id={project_id}, frame_id={frame_id}, new_number={new_number}")
         session = self.Session()
         try:
             # Получаем все кадры проекта, отсортированные по number
             frames = session.query(Frame).filter(Frame.project_id == project_id).order_by(Frame.number).all()
-            print(f"[reorder_frames] Found {len(frames)} frames")
             
             # Находим индекс перемещаемого кадра
             frame_index = None
@@ -147,10 +145,7 @@ class FrameModel:
                     break
             
             if frame_index is None:
-                print(f"[reorder_frames] Frame {frame_id} not found in project frames")
                 return False
-            
-            print(f"[reorder_frames] Frame found at index {frame_index}, moving to new_number={new_number}")
             
             # Удаляем кадр из списка
             moved_frame = frames.pop(frame_index)
@@ -166,18 +161,14 @@ class FrameModel:
             
             # Обновляем номера
             for i, frame in enumerate(frames):
-                old_number = frame.number
                 frame.number = i + 1
-                if old_number != frame.number:
-                    print(f"[reorder_frames] Frame id={frame.id}: number {old_number} -> {frame.number}")
             
             session.commit()
-            print(f"[reorder_frames] Successfully committed changes")
             return True
             
         except Exception as e:
             session.rollback()
-            print(f"[reorder_frames] Error reordering frames: {e}")
+            print(f"Error reordering frames: {e}")
             return False
         finally:
             session.close()
@@ -193,23 +184,20 @@ class FrameModel:
         Returns:
             success: bool - успешность операции
         """
-        print(f"[reorder_frames_by_frame_id] Called with frame_id={frame_id}, new_number={new_number}")
         session = self.Session()
         try:
             # Получаем project_id из кадра
             frame = session.query(Frame).filter(Frame.id == frame_id).first()
             if not frame:
-                print(f"[reorder_frames_by_frame_id] Frame {frame_id} not found")
                 return False
             project_id = frame.project_id
-            print(f"[reorder_frames_by_frame_id] Found project_id={project_id}")
-        except Exception as e:
-            print(f"[reorder_frames_by_frame_id] Error getting frame: {e}")
-            return False
-        finally:
             session.close()
-        
-        return self.reorder_frames(project_id, frame_id, new_number)
+            
+            return self.reorder_frames(project_id, frame_id, new_number)
+        except Exception as e:
+            session.close()
+            print(f"Error reordering frames by frame_id: {e}")
+            return False
     
     def delete_frame(self, frame_id: int) -> bool:
         """

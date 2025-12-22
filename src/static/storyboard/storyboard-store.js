@@ -431,6 +431,7 @@
 
   async function dragAndDropFrame(frameId, newPosition) {
     try {
+      console.log('Sending POST to dragAndDropFrame for frame', frameId, 'to', newPosition);
       const response = await fetch(`${API_BASE}/api/frame/dragAndDropFrame`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -439,10 +440,13 @@
           frame_number: Number(newPosition)
         })
       });
+      console.log('Response status:', response.status);
       if (!response.ok) throw new Error('Failed to move frame');
       // Reload frames
-      const projectId = getProjectIdFromFrames();
-      if (projectId) await loadFrames(projectId);
+      const projectId = window.currentProjectId || 1;
+      console.log('Reloading frames for project', projectId);
+      await loadFrames(projectId);
+      console.log('Frames reloaded');
       return true;
     } catch (error) {
       console.error('Error moving frame:', error);

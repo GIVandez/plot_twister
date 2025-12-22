@@ -909,23 +909,19 @@ function initFramesDragDrop() {
                 syncOrderFromDOM();
                 // Sync with server
                 const store = window.storyboardStore;
-                console.log('[onMouseUp] store:', !!store, 'dragAndDropFrame:', !!(store && store.dragAndDropFrame));
                 if (store && store.dragAndDropFrame) {
                     const draggedId = draggedElement.dataset.id;
-                    console.log('[onMouseUp] draggedElement.dataset.id:', draggedId);
                     const framesEls = Array.from(container.querySelectorAll('.frame'));
-                    console.log('[onMouseUp] framesEls count:', framesEls.length);
                     const newIndex = framesEls.findIndex(el => el.dataset.id == draggedId);
-                    console.log('[onMouseUp] newIndex:', newIndex);
                     if (newIndex !== -1) {
-                        console.log('[onMouseUp] Calling dragAndDropFrame for', draggedId, 'to position', newIndex + 1);
-                        const result = await store.dragAndDropFrame(draggedId, newIndex + 1);
-                        console.log('[onMouseUp] dragAndDropFrame result:', result);
+                        console.log('Calling dragAndDropFrame for', draggedId, 'to position', newIndex + 1);
+                        await store.dragAndDropFrame(draggedId, newIndex + 1);
+                        console.log('dragAndDropFrame completed');
                     } else {
-                        console.log('[onMouseUp] newIndex not found for draggedId', draggedId);
+                        console.log('newIndex not found for draggedId', draggedId);
                     }
                 } else {
-                    console.log('[onMouseUp] store or dragAndDropFrame not available');
+                    console.log('store or dragAndDropFrame not available');
                 }
                 // небольшая отложенная перерисовка чтобы DOM успел обновиться
                 setTimeout(() => {
