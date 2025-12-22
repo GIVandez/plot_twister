@@ -622,6 +622,7 @@ async function shiftFramesFromIndexWithAPI(startIndex, delta) {
     if (!store || !Number.isFinite(delta) || delta === 0) return;
     
     const frameCount = store.getFrameCount();
+    const updatePromises = [];
     for (let i = startIndex; i < frameCount; i++) {
         const f = store.getFrameByIndex(i);
         if (!f) continue;
@@ -630,12 +631,13 @@ async function shiftFramesFromIndexWithAPI(startIndex, delta) {
         
         // Update via API
         if (store.redoStartTime) {
-            await store.redoStartTime(f.id, newStart);
+            updatePromises.push(store.redoStartTime(f.id, newStart));
         }
         if (store.redoEndTime) {
-            await store.redoEndTime(f.id, newEnd);
+            updatePromises.push(store.redoEndTime(f.id, newEnd));
         }
     }
+    await Promise.all(updatePromises);
 }
 
 // Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд (локально, без API)
@@ -660,11 +662,31 @@ async function deleteFrame(index) {
     const frame = store.getFrameByIndex(index);
     if (!frame) return;
 
+    // Calculate the duration of the frame to shift subsequent frames
+    const duration = frame.end - frame.start;
+
     // Delete via API
     const success = await store.deleteFrame(frame.id);
     if (success) {
+        // Update frame numbers after deletion
+        const frames = store.getFrames();
+        frames.forEach((f, idx) => {
+            store.setFrameValuesById(f.id, { number: idx + 1 });
+        });
+
+        // Shift subsequent frames back by the duration locally first
+        if (duration > 0) {
+            shiftFramesFromIndex(index, -duration);
+        }
+
+        // Update UI immediately
         if (window.renderFrames) {
             window.renderFrames();
+        }
+
+        // Then sync shifts with server in background
+        if (duration > 0) {
+            shiftFramesFromIndexWithAPI(index, -duration).catch(err => console.error('Error syncing shifts:', err));
         }
 
         // Обновляем скроллбар после удаления
@@ -681,3 +703,4 @@ window.renderFrames = renderFrames;
 window.deleteFrame = deleteFrame;
 window.formatTime = formatTime;
 window.parseTime = parseTime;
+window.shiftFramesFromIndexWithAPI = shiftFramesFromIndexWithAPI;

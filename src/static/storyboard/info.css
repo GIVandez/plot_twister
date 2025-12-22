@@ -63,7 +63,6 @@
   color: inherit;
 }
 
-.page-controls .page-search-input,
 .page-controls .page-action-btn {
   height: 40px;
   border-radius: 6px;
@@ -76,18 +75,6 @@
   transition: transform 0.28s ease, box-shadow 0.28s ease, background 0.28s ease;
 }
 
-.page-search-input {
-  flex: 2;
-  padding: 0 12px;
-  background: #666;
-  color: white;
-  text-align: left;
-}
-
-.page-search-input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
-
 .page-action-btn {
   flex: 1;
   cursor: pointer;
@@ -95,8 +82,7 @@
   color: white;
 }
 
-.page-action-btn:hover,
-.page-search-input:hover {
+.page-action-btn:hover {
   transform: translateY(-1px) scale(1.02);
   box-shadow: 0 6px 18px rgba(0,0,0,0.12);
 }

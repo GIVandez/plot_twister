@@ -310,9 +310,11 @@ class DatabaseRepository:
         """Изменение информации о кадре"""
         session = self.Session()
         try:
+            print(f"update_frame_info called: frame_id={frame_id}, start_time={start_time}, end_time={end_time}, pic_path={pic_path}, description={(description[:50] + '...') if description and len(description)>50 else description}, number={number}")
             frame = session.query(Frame).filter(Frame.id == frame_id).first()
             
             if not frame:
+                print(f"update_frame_info: frame {frame_id} not found")
                 return False
             
             if start_time is not None:
@@ -327,11 +329,14 @@ class DatabaseRepository:
                 frame.number = number
             
             session.commit()
+            print(f"update_frame_info: commit successful for frame {frame_id}")
             return True
             
         except Exception as e:
             session.rollback()
-            print(f"Error updating frame info: {e}")
+            import traceback
+            print(f"Error updating frame info for frame {frame_id}: {e}")
+            traceback.print_exc()
             return False
         finally:
             session.close()

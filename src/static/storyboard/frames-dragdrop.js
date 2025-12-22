@@ -186,7 +186,7 @@ function showFrameInfo(frameData) {
                 }
             }, 0);
             
-            function saveTime() {
+            async function saveTime() {
                 const newTimeStr = input.value.trim();
                 const newTime = parseTime(newTimeStr);
                 
@@ -202,17 +202,23 @@ function showFrameInfo(frameData) {
                         frameData[timeType] = newTime;
                         btn.textContent = formatTime(newTime);
 
-                        // Обновляем данные в базе
+                        // Calculate delta for domino effect
+                        const delta = newTime - oldTime;
+
+                        // Update current frame via API
                         if (frameIndex !== -1 && store) {
-                            store.setFrameValuesByIndex(frameIndex, { [timeType]: newTime });
+                            if (timeType === 'start' && store.redoStartTime) {
+                                await store.redoStartTime(frameData.id, newTime);
+                            } else if (timeType === 'end' && store.redoEndTime) {
+                                await store.redoEndTime(frameData.id, newTime);
+                            } else {
+                                store.setFrameValuesByIndex(frameIndex, { [timeType]: newTime });
+                            }
                         }
 
-                        // Если правим конец кадра — сдвигаем все последующие кадры на ту же дельту
-                        if (timeType === 'end') {
-                            const delta = newTime - oldTime;
-                            if (delta !== 0 && typeof window.shiftFramesFromIndex === 'function') {
-                                window.shiftFramesFromIndex(frameIndex + 1, delta);
-                            }
+                        // Domino effect: shift subsequent frames when end time changes
+                        if (timeType === 'end' && delta !== 0) {
+                            await shiftFramesFromIndexWithAPI(frameIndex + 1, delta);
                         }
 
                         // Обновляем отображение в левой панели
@@ -905,17 +911,21 @@ function initFramesDragDrop() {
             try {
                 // сохраняем текущую прокрутку контейнера, чтобы не прыгать в начало после renderFrames
                 const prevScroll = container ? container.scrollTop : null;
-                
-                syncOrderFromDOM();
-                // Sync with server
+
+                // Снимок до изменений (важно сделать ДО вызова syncOrderFromDOM)
                 const store = window.storyboardStore;
+                const beforeSnapshot = store && store.getSnapshot ? store.getSnapshot() : null;
+                console.log('Captured beforeSnapshot', beforeSnapshot ? beforeSnapshot.map(f => f.frame_id) : null);
+                
+                await syncOrderFromDOM();
+                // Sync with server
                 if (store && store.dragAndDropFrame) {
                     const draggedId = draggedElement.dataset.id;
                     const framesEls = Array.from(container.querySelectorAll('.frame'));
                     const newIndex = framesEls.findIndex(el => el.dataset.id == draggedId);
                     if (newIndex !== -1) {
                         console.log('Calling dragAndDropFrame for', draggedId, 'to position', newIndex + 1);
-                        await store.dragAndDropFrame(draggedId, newIndex + 1);
+                        await store.dragAndDropFrame(draggedId, newIndex + 1, beforeSnapshot);
                         console.log('dragAndDropFrame completed');
                     } else {
                         console.log('newIndex not found for draggedId', draggedId);
@@ -1009,7 +1019,7 @@ function initFramesDragDrop() {
 }
 
 // Синхронизировать порядок кадров в данных (frames[].number) по текущему порядку DOM
-function syncOrderFromDOM() {
+async function syncOrderFromDOM() {
     try {
         const container = document.getElementById('framesContainer');
         if (!container) return;
@@ -1046,6 +1056,27 @@ function syncOrderFromDOM() {
                 store.setFrameValuesById(id, { start, end });
                 currentStart = end;
             });
+            // Update UI immediately
+            if (window.renderFrames) {
+                window.renderFrames();
+            }
+            // Then sync with server in background
+            const updatePromises = [];
+            currentStart = originalFirstStart;
+            finalIds.forEach(id => {
+                const dur = durationsById[String(id)] != null ? durationsById[String(id)] : 15;
+                const start = Math.round(Math.max(0, currentStart));
+                const end = Math.round(start + dur);
+                if (store.redoStartTime) {
+                    updatePromises.push(store.redoStartTime(id, start));
+                }
+                if (store.redoEndTime) {
+                    updatePromises.push(store.redoEndTime(id, end));
+                }
+                currentStart = end;
+            });
+            // Don't await, let it sync in background
+            Promise.all(updatePromises).catch(err => console.error('Error syncing times:', err));
         }
 
         store._suppressUndo = false;

@@ -2,6 +2,7 @@
 class ScriptPagesManager {
     constructor() {
         this.isVisible = false;
+        this.currentFrameIndex = null;
         this.init();
     }
 
@@ -14,10 +15,24 @@ class ScriptPagesManager {
         if (closePageBtn) {
             closePageBtn.addEventListener('click', () => this.hidePage());
         }
+        
+        // Добавляем обработчики для кнопок связи
+        const pageLinkBtn = document.getElementById('pageLinkBtn');
+        const pageUnlinkBtn = document.getElementById('pageUnlinkBtn');
+        
+        if (pageLinkBtn) {
+            pageLinkBtn.addEventListener('click', () => this.linkFrameToPage());
+        }
+        
+        if (pageUnlinkBtn) {
+            pageUnlinkBtn.addEventListener('click', () => this.unlinkFrameFromPage());
+        }
     }
 
     // Показать страницу по номеру
     showPage(pageNumber, frameIndex) {
+        this.currentFrameIndex = frameIndex;
+        
         // Сначала скрываем информацию о кадре
         hideFrameInfo();
         
@@ -50,6 +65,12 @@ class ScriptPagesManager {
             });
             
             this.isVisible = true;
+            
+            // Убедимся, что кнопки активны
+            const pageLinkBtn = document.getElementById('pageLinkBtn');
+            const pageUnlinkBtn = document.getElementById('pageUnlinkBtn');
+            if (pageLinkBtn) pageLinkBtn.disabled = false;
+            if (pageUnlinkBtn) pageUnlinkBtn.disabled = false;
         }
     }
 
@@ -87,6 +108,58 @@ class ScriptPagesManager {
         const available = store ? store.getPageNumbers().join(', ') : '';
         pageContent.textContent = `Страница с номером ${pageNumber} не найдена.\n\nДоступные страницы: ${available}`;
         this.showPageSection();
+    }
+    
+    // Связать кадр с текущей страницей
+    linkFrameToPage() {
+        if (this.currentFrameIndex === null) return;
+        
+        const store = window.storyboardStore;
+        if (!store) return;
+        
+        const frame = store.getFrameByIndex(this.currentFrameIndex);
+        if (!frame) return;
+        
+        // Получаем номер текущей страницы из текста или где-то
+        // Предполагаем, что текущая страница - та, что открыта
+        // Но поскольку showPage получает pageNumber, нужно сохранить его.
+        
+        // В showPage pageNumber передается, но не сохраняется.
+        // Нужно добавить свойство currentPageNumber.
+        
+        // Для простоты, поскольку модальное окно открывается для выбора, но пользователь говорит "предлагается выбор новой страницы"
+        
+        // Открываем модальное окно выбора страницы
+        if (window.openPageSelectorModal) {
+            window.openPageSelectorModal(this.currentFrameIndex);
+        }
+    }
+    
+    // Отвязать кадр от страницы
+    async unlinkFrameFromPage() {
+        if (this.currentFrameIndex === null) return;
+        
+        const store = window.storyboardStore;
+        if (!store) return;
+        
+        const frame = store.getFrameByIndex(this.currentFrameIndex);
+        if (!frame) return;
+        
+        // Отправляем запрос на сервер для отключения
+        const success = await store.disconnectFrame(frame.id);
+        if (success) {
+            // Обновляем локальные данные
+            store.setFrameValuesByIndex(this.currentFrameIndex, { connectedPage: null });
+            
+            // Обновляем отображение кадров
+            if (window.renderFrames) {
+                window.renderFrames();
+            }
+            
+            alert('Связь кадра со страницей удалена.');
+        } else {
+            alert('Ошибка при удалении связи.');
+        }
     }
 }
 

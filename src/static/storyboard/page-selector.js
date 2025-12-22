@@ -458,7 +458,7 @@
         stopHold();
     }
 
-    function confirmSelection() {
+    async function confirmSelection() {
         if (pendingFrameIndex === null || pages.length === 0) {
             closeModal();
             return;
@@ -472,20 +472,32 @@
 
         const store = window.storyboardStore;
         if (store) {
-            store.setFrameValuesByIndex(pendingFrameIndex, { connectedPage: selectedPage.num });
+            // Отправляем запрос на сервер для связи
+            const success = await store.connectFrame(store.getFrameByIndex(pendingFrameIndex).id, selectedPage.num);
+            if (success) {
+                // Обновляем локальные данные
+                store.setFrameValuesByIndex(pendingFrameIndex, { connectedPage: selectedPage.num });
 
-            if (window.renderFrames) {
-                window.renderFrames();
-            }
-
-            setTimeout(() => {
-                if (window.openScriptPage) {
-                    window.openScriptPage(selectedPage.num, pendingFrameIndex);
+                if (window.renderFrames) {
+                    window.renderFrames();
                 }
-            }, 100);
-        }
 
-        closeModal();
+                // Сохраняем pendingFrameIndex перед closeModal
+                const frameIndex = pendingFrameIndex;
+                closeModal();
+
+                setTimeout(() => {
+                    if (window.openScriptPage) {
+                        window.openScriptPage(selectedPage.num, frameIndex);
+                    }
+                }, 100);
+            } else {
+                alert('Ошибка при связи кадра со страницей.');
+                closeModal();
+            }
+        } else {
+            closeModal();
+        }
     }
 
     if (overlay) {

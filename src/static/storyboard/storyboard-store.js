@@ -356,7 +356,7 @@
   }
 
   // API functions
-  const API_BASE = window.location.origin;
+  const API_BASE = 'http://localhost:8000';
 
   async function loadFrames(projectId) {
     try {
@@ -429,20 +429,38 @@
     }
   }
 
-  async function dragAndDropFrame(frameId, newPosition) {
+  async function updateFrameNumber(frameId, newNumber) {
     try {
-      console.log('Sending POST to dragAndDropFrame for frame', frameId, 'to', newPosition);
-      const response = await fetch(`${API_BASE}/api/frame/dragAndDropFrame`, {
+      console.log('updateFrameNumber: sending', frameId, '->', newNumber);
+      const response = await fetch(`${API_BASE}/api/frame/updateNumber`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          frame_id: Number(frameId),
-          frame_number: Number(newPosition)
-        })
+        body: JSON.stringify({ frame_id: Number(frameId), frame_number: Number(newNumber) })
       });
-      console.log('Response status:', response.status);
-      if (!response.ok) throw new Error('Failed to move frame');
-      // Reload frames
+      if (!response.ok) {
+        const text = await response.text().catch(() => '<no-body>');
+        console.error('updateFrameNumber failed for', frameId, '->', newNumber, 'status', response.status, 'body', text);
+        return false;
+      }
+      console.log('updateFrameNumber: success', frameId, '->', newNumber);
+      return true;
+    } catch (err) {
+      console.error('Error in updateFrameNumber:', err);
+      return false;
+    }
+  }
+
+  async function dragAndDropFrame(frameId, newPosition, beforeSnapshot = null) {
+    try {
+      console.log('Moving frame', frameId, 'to position', newPosition);
+      
+      // Отправляем один запрос — сервер сам пересчитает номера всех затронутых кадров
+      const ok = await updateFrameNumber(frameId, newPosition);
+      if (!ok) {
+        throw new Error('Failed to update frame number for ' + frameId);
+      }
+
+      // Reload frames from server
       const projectId = window.currentProjectId || 1;
       console.log('Reloading frames for project', projectId);
       await loadFrames(projectId);
@@ -450,7 +468,23 @@
       return true;
     } catch (error) {
       console.error('Error moving frame:', error);
-      return false;
+      // Fallback to original dragAndDropFrame API
+      try {
+        console.log('Falling back to dragAndDropFrame API for', frameId, newPosition);
+        const response = await fetch(`${API_BASE}/api/frame/dragAndDropFrame`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ frame_id: Number(frameId), frame_number: Number(newPosition) })
+        });
+        if (!response.ok) throw new Error('Fallback single move failed');
+
+        const projectId = window.currentProjectId || 1;
+        await loadFrames(projectId);
+        return true;
+      } catch (err) {
+        console.error('Fallback also failed:', err);
+        return false;
+      }
     }
   }
 
@@ -537,6 +571,47 @@
     }
   }
 
+  async function connectFrame(frameId, pageId) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/connectFrame`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frame_id: Number(frameId),
+          page_id: Number(pageId)
+        })
+      });
+      if (!response.ok) throw new Error('Failed to connect frame to page');
+      // Update local frame
+      const frame = frames.find(f => f.frame_id === frameId);
+      if (frame) frame.connected = pageId;
+      return true;
+    } catch (error) {
+      console.error('Error connecting frame to page:', error);
+      return false;
+    }
+  }
+
+  async function disconnectFrame(frameId) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/disconnectFrame`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frame_id: Number(frameId)
+        })
+      });
+      if (!response.ok) throw new Error('Failed to disconnect frame from page');
+      // Update local frame
+      const frame = frames.find(f => f.frame_id === frameId);
+      if (frame) frame.connected = null;
+      return true;
+    } catch (error) {
+      console.error('Error disconnecting frame from page:', error);
+      return false;
+    }
+  }
+
   async function uploadImage(frameId, imageFile) {
     try {
       const formData = new FormData();
@@ -608,6 +683,8 @@
     redoStartTime,
     redoEndTime,
     redoDescription,
+    connectFrame,
+    disconnectFrame,
     deleteFrame,
     uploadImage,
     deleteImage,

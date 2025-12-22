@@ -51,6 +51,36 @@ async def drag_and_drop_frame(request: DragAndDropFrameRequest):
         )
 
 
+@router.post("/api/frame/updateNumber")
+async def update_frame_number(request: DragAndDropFrameRequest):
+    """Обновление порядкового номера одного кадра (использует reorder для избежания конфликта unique constraint)"""
+    try:
+        print(f"update_frame_number called: {request.frame_id} -> {request.frame_number}")
+        frame_info = frame_model.get_frame_info(request.frame_id)
+        if not frame_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Кадр не найден"
+            )
+
+        # Используем reorder_frames_by_frame_id для корректного обновления с учётом UNIQUE constraint
+        success = frame_model.reorder_frames_by_frame_id(request.frame_id, request.frame_number)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ошибка при обновлении номера кадра"
+            )
+
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
+
+
 @router.get("/api/frame/{project_id}/loadFrames", response_model=LoadFramesResponse)
 async def load_frames(project_id: int):
     """Загрузка кадров проекта пользователя"""

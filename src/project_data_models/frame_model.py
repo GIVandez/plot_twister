@@ -118,7 +118,10 @@ class FrameModel:
         Returns:
             success: bool - успешность операции
         """
-        return self.db.update_frame_info(frame_id=frame_id, number=number)
+        print(f"FrameModel.update_frame_number called: {frame_id} -> {number}")
+        success = self.db.update_frame_info(frame_id=frame_id, number=number)
+        print(f"FrameModel.update_frame_number result: {success}")
+        return success
     
     def reorder_frames(self, project_id: int, frame_id: int, new_number: int) -> bool:
         """
@@ -134,8 +137,11 @@ class FrameModel:
         """
         session = self.Session()
         try:
+            print(f"reorder_frames called: project_id={project_id}, frame_id={frame_id}, new_number={new_number}")
+            
             # Получаем все кадры проекта, отсортированные по number
             frames = session.query(Frame).filter(Frame.project_id == project_id).order_by(Frame.number).all()
+            print(f"Found {len(frames)} frames in project {project_id}")
             
             # Находим индекс перемещаемого кадра
             frame_index = None
@@ -145,6 +151,7 @@ class FrameModel:
                     break
             
             if frame_index is None:
+                print(f"Frame {frame_id} not found in project {project_id}")
                 return False
             
             # Удаляем кадр из списка
@@ -159,16 +166,24 @@ class FrameModel:
             
             frames.insert(new_index, moved_frame)
             
-            # Обновляем номера
+            # Сначала устанавливаем временные отрицательные номера, чтобы избежать UNIQUE constraint
+            for i, frame in enumerate(frames):
+                frame.number = -(i + 1)
+            session.flush()  # Применяем изменения в транзакции
+            
+            # Теперь устанавливаем финальные положительные номера
             for i, frame in enumerate(frames):
                 frame.number = i + 1
             
             session.commit()
+            print(f"reorder_frames: successfully reordered frames")
             return True
             
         except Exception as e:
             session.rollback()
+            import traceback
             print(f"Error reordering frames: {e}")
+            traceback.print_exc()
             return False
         finally:
             session.close()
