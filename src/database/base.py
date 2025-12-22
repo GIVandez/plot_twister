@@ -1,6 +1,7 @@
 import sqlalchemy as db
 
-engine = db.create_engine("postgresql://aaa:aaa@localhost:5432/plot_twister")
+#engine = db.create_engine("postgresql://aaa:aaa@localhost:5432/plot_twister")
+engine = db.create_engine("postgresql://root:root@localhost:5432/plot_twister")
 
 #conn = engine.connect()
 # metadata = db.MetaData() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
