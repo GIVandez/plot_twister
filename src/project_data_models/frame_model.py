@@ -107,6 +107,110 @@ class FrameModel:
             description=description
         )
     
+    def update_frame_number(self, frame_id: int, number: int) -> bool:
+        """
+        Обновление порядкового номера кадра
+        
+        Args:
+            frame_id: id кадра
+            number: новый порядковый номер
+        
+        Returns:
+            success: bool - успешность операции
+        """
+        return self.db.update_frame_info(frame_id=frame_id, number=number)
+    
+    def reorder_frames(self, project_id: int, frame_id: int, new_number: int) -> bool:
+        """
+        Переупорядочивание кадров при перетаскивании
+        
+        Args:
+            project_id: id проекта
+            frame_id: id перемещаемого кадра
+            new_number: новая позиция кадра
+        
+        Returns:
+            success: bool - успешность операции
+        """
+        print(f"[reorder_frames] Called with project_id={project_id}, frame_id={frame_id}, new_number={new_number}")
+        session = self.Session()
+        try:
+            # Получаем все кадры проекта, отсортированные по number
+            frames = session.query(Frame).filter(Frame.project_id == project_id).order_by(Frame.number).all()
+            print(f"[reorder_frames] Found {len(frames)} frames")
+            
+            # Находим индекс перемещаемого кадра
+            frame_index = None
+            for i, frame in enumerate(frames):
+                if frame.id == frame_id:
+                    frame_index = i
+                    break
+            
+            if frame_index is None:
+                print(f"[reorder_frames] Frame {frame_id} not found in project frames")
+                return False
+            
+            print(f"[reorder_frames] Frame found at index {frame_index}, moving to new_number={new_number}")
+            
+            # Удаляем кадр из списка
+            moved_frame = frames.pop(frame_index)
+            
+            # Вставляем на новую позицию (new_number - 1, поскольку number начинается с 1)
+            new_index = new_number - 1
+            if new_index < 0:
+                new_index = 0
+            elif new_index > len(frames):
+                new_index = len(frames)
+            
+            frames.insert(new_index, moved_frame)
+            
+            # Обновляем номера
+            for i, frame in enumerate(frames):
+                old_number = frame.number
+                frame.number = i + 1
+                if old_number != frame.number:
+                    print(f"[reorder_frames] Frame id={frame.id}: number {old_number} -> {frame.number}")
+            
+            session.commit()
+            print(f"[reorder_frames] Successfully committed changes")
+            return True
+            
+        except Exception as e:
+            session.rollback()
+            print(f"[reorder_frames] Error reordering frames: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def reorder_frames_by_frame_id(self, frame_id: int, new_number: int) -> bool:
+        """
+        Переупорядочивание кадров по frame_id и новой позиции
+        
+        Args:
+            frame_id: id перемещаемого кадра
+            new_number: новая позиция кадра
+        
+        Returns:
+            success: bool - успешность операции
+        """
+        print(f"[reorder_frames_by_frame_id] Called with frame_id={frame_id}, new_number={new_number}")
+        session = self.Session()
+        try:
+            # Получаем project_id из кадра
+            frame = session.query(Frame).filter(Frame.id == frame_id).first()
+            if not frame:
+                print(f"[reorder_frames_by_frame_id] Frame {frame_id} not found")
+                return False
+            project_id = frame.project_id
+            print(f"[reorder_frames_by_frame_id] Found project_id={project_id}")
+        except Exception as e:
+            print(f"[reorder_frames_by_frame_id] Error getting frame: {e}")
+            return False
+        finally:
+            session.close()
+        
+        return self.reorder_frames(project_id, frame_id, new_number)
+    
     def delete_frame(self, frame_id: int) -> bool:
         """
         Удаление кадра

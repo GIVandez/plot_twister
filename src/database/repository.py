@@ -306,7 +306,7 @@ class DatabaseRepository:
 
     def update_frame_info(self, frame_id: int, start_time: Optional[int] = None,
                          end_time: Optional[int] = None, pic_path: Optional[str] = None,
-                         description: Optional[str] = None) -> bool:
+                         description: Optional[str] = None, number: Optional[int] = None) -> bool:
         """Изменение информации о кадре"""
         session = self.Session()
         try:
@@ -323,6 +323,8 @@ class DatabaseRepository:
                 frame.pic_path = pic_path
             if description is not None:
                 frame.description = description
+            if number is not None:
+                frame.number = number
             
             session.commit()
             return True

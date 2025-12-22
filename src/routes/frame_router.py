@@ -20,21 +20,34 @@ db_repo = DatabaseRepository()
 @router.post("/api/frame/dragAndDropFrame")
 async def drag_and_drop_frame(request: DragAndDropFrameRequest):
     """Перетаскивание кадра в списке кадров"""
+    print(f"[drag_and_drop_frame] Received request: frame_id={request.frame_id}, frame_number={request.frame_number}")
     try:
         # Получаем информацию о кадре
         frame_info = frame_model.get_frame_info(request.frame_id)
         if not frame_info:
+            print(f"[drag_and_drop_frame] Frame {request.frame_id} not found")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Кадр не найден"
             )
         
-        # TODO: Реализовать логику изменения номера кадра и пересчета номеров других кадров
-        # Пока возвращаем успех
+        print(f"[drag_and_drop_frame] Frame info: {frame_info}")
+        
+        # Реализуем логику изменения номера кадра и пересчета номеров других кадров
+        success = frame_model.reorder_frames_by_frame_id(request.frame_id, request.frame_number)
+        if not success:
+            print(f"[drag_and_drop_frame] Failed to reorder frames")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ошибка при изменении порядка кадров"
+            )
+        
+        print(f"[drag_and_drop_frame] Successfully reordered frames")
         return {"success": True}
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[drag_and_drop_frame] Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Внутренняя ошибка сервера: {str(e)}"

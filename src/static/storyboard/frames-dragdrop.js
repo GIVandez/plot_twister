@@ -866,7 +866,7 @@ function initFramesDragDrop() {
         }
     }
 
-    function onMouseUp(e) {
+    async function onMouseUp(e) {
         // Удаляем все обработчики
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
@@ -909,9 +909,23 @@ function initFramesDragDrop() {
                 syncOrderFromDOM();
                 // Sync with server
                 const store = window.storyboardStore;
-                if (store && store.loadFrames) {
-                    const projectId = window.currentProjectId || 1;
-                    store.loadFrames(projectId);
+                console.log('[onMouseUp] store:', !!store, 'dragAndDropFrame:', !!(store && store.dragAndDropFrame));
+                if (store && store.dragAndDropFrame) {
+                    const draggedId = draggedElement.dataset.id;
+                    console.log('[onMouseUp] draggedElement.dataset.id:', draggedId);
+                    const framesEls = Array.from(container.querySelectorAll('.frame'));
+                    console.log('[onMouseUp] framesEls count:', framesEls.length);
+                    const newIndex = framesEls.findIndex(el => el.dataset.id == draggedId);
+                    console.log('[onMouseUp] newIndex:', newIndex);
+                    if (newIndex !== -1) {
+                        console.log('[onMouseUp] Calling dragAndDropFrame for', draggedId, 'to position', newIndex + 1);
+                        const result = await store.dragAndDropFrame(draggedId, newIndex + 1);
+                        console.log('[onMouseUp] dragAndDropFrame result:', result);
+                    } else {
+                        console.log('[onMouseUp] newIndex not found for draggedId', draggedId);
+                    }
+                } else {
+                    console.log('[onMouseUp] store or dragAndDropFrame not available');
                 }
                 // небольшая отложенная перерисовка чтобы DOM успел обновиться
                 setTimeout(() => {
