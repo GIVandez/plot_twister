@@ -9,16 +9,68 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressFill = document.getElementById('progressFill');
     const progressHandle = document.getElementById('progressHandle');
 
-    const pagesData = window.storyboardData.pages;
-    let pageNumbers = Object.keys(pagesData).map(Number).sort((a, b) => a - b);
-    let totalPages = pageNumbers.length;
+    // Pages data will be loaded from API: store mapping number->pageObj and number->id
+    const pagesData = {};
+    const numberToId = {}; // pageNumber -> pageId
+    let pageNumbers = [];
+    let totalPages = 0;
 
     let pageIndexMap = {};
     function rebuildPageIndexMap() {
         pageIndexMap = {};
         pageNumbers.forEach((pn, idx) => pageIndexMap[pn] = idx);
     }
-    rebuildPageIndexMap();
+
+    // Helper: load pages from API and initialize local structures
+    async function loadPagesFromApi() {
+        const projectId = window.currentProjectId || 1;
+        try {
+            const resp = await fetch(`/api/page/${projectId}/loadPages`);
+            if (resp.status === 204) {
+                // no pages
+                for (const k in pagesData) delete pagesData[k];
+                for (const k in numberToId) delete numberToId[k];
+                pageNumbers = [];
+                totalPages = 0;
+                rebuildPageIndexMap();
+                updateCards();
+                updateSlider();
+                updatePageIndicator();
+                updateButtons();
+                return true;
+            }
+            if (!resp.ok) throw new Error('Failed to load pages');
+            const data = await resp.json();
+            // data.pages keyed by id
+            for (const k in pagesData) delete pagesData[k];
+            for (const k in numberToId) delete numberToId[k];
+            Object.entries(data.pages || {}).forEach(([id, page]) => {
+                const num = Number(page.number);
+                pagesData[num] = { number: num, text: page.text || '' };
+                numberToId[num] = Number(id);
+            });
+            pageNumbers = Object.keys(pagesData).map(Number).sort((a,b)=>a-b);
+            totalPages = pageNumbers.length;
+            rebuildPageIndexMap();
+            updateCards();
+            updateSlider();
+            updatePageIndicator();
+            updateButtons();
+            return true;
+        } catch (e) {
+            console.error('loadPagesFromApi failed', e);
+            // fallback to existing static data if available
+            const initial = window.storyboardData && window.storyboardData.pages ? window.storyboardData.pages : {};
+            Object.keys(initial).forEach(k => pagesData[k] = initial[k]);
+            pageNumbers = Object.keys(pagesData).map(Number).sort((a, b) => a - b);
+            totalPages = pageNumbers.length;
+            rebuildPageIndexMap();
+            return false;
+        }
+    }
+
+    // Kick off loading pages from API
+    loadPagesFromApi();
     
     // === CORE STATE ===
     let targetIndex = 0;
@@ -104,8 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const thisPageNum = Number(pageNum);
 
                 if (thisPageNum === activePageNum) {
-                    // open the text editor (relative path to the editor file)
-                    window.location.href = 'script_redo/TextEditor.html';
+                    // open the text editor for this page (pass page number and id)
+                    const pid = numberToId[thisPageNum] || '';
+                    window.location.href = `script_redo/TextEditor.html?pageNum=${thisPageNum}&pageId=${pid}`;
                 } else {
                     // if clicked card isn't centered yet, navigate to it
                     const clickedIdx = pageNumbers.indexOf(thisPageNum);
@@ -626,28 +679,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // add new page at the end (empty text) and update storyboard-data + UI
-    function addNewPage() {
-        const maxPage = pageNumbers.length ? Math.max(...pageNumbers) : 0;
-        const newPageNum = maxPage + 1;
-
-        // update global data object and local reference — теперь объект
-        const newPageObj = { number: newPageNum, text: '' };
-        window.storyboardData.pages[newPageNum] = newPageObj;
-        pagesData[newPageNum] = newPageObj;
-
-        pageNumbers.push(newPageNum);
-        pageNumbers.sort((a, b) => a - b);
-        rebuildPageIndexMap();
-        totalPages = pageNumbers.length;
-
-        updateButtons();
-        navigateTo(totalPages - 1); // animate to the newly created page
-        updateCards();
-        updateSlider();
-        updatePageIndicator();
-
-        // Removed automatic download on add — saving is now explicit via Save button
-        // downloadUpdatedStoryboardFile();
+    async function addNewPage() {
+        const projectId = window.currentProjectId || 1;
+        try {
+            const resp = await fetch('/api/page/newPage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: Number(projectId) })
+            });
+            if (!resp.ok) throw new Error('Failed to create page');
+            const data = await resp.json();
+            // After creating, reload pages from API
+            await loadPagesFromApi();
+            // Navigate to last page
+            navigateTo(Math.max(0, totalPages - 1));
+        } catch (e) {
+            console.error('addNewPage failed', e);
+            alert('Не удалось создать страницу');
+        }
     }
 
     // attach listener to button
@@ -675,60 +724,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function handleDeletePage(removedNum) {
+    async function handleDeletePage(removedNum) {
         const removedIdx = pageNumbers.indexOf(removedNum);
         if (removedIdx === -1) return;
 
-        const newPages = {};
-        pageNumbers.forEach((pn) => {
-            const num = Number(pn);
-            if (num === removedNum) return;
-            const newNum = num < removedNum ? num : num - 1;
-            const src = pagesData[num] || {};
-            newPages[newNum] = {
-                number: newNum,
-                text: (src && typeof src === 'object') ? (src.text || '') : (src || '')
-            };
-        });
-
-        const frames = window.storyboardData.frames || [];
-        for (const fr of frames) {
-            if (fr && fr.connected) {
-                const cp = Number(fr.connected);
-                if (cp === removedNum) fr.connected = '';
-                else if (cp > removedNum) fr.connected = String(cp - 1);
-            }
+        const pageId = numberToId[removedNum];
+        if (!pageId) {
+            alert('Не удалось найти id страницы для удаления');
+            return;
         }
 
-        for (const key in pagesData) {
-            if (Object.prototype.hasOwnProperty.call(pagesData, key)) delete pagesData[key];
-        }
-        Object.keys(newPages).forEach(n => pagesData[n] = newPages[n]);
-        window.storyboardData.pages = pagesData;
+        try {
+            const resp = await fetch('/api/page/deletePage', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_id: Number(pageId) })
+            });
+            if (!resp.ok) throw new Error('Failed to delete page');
 
-        pageNumbers = Object.keys(pagesData).map(Number).sort((a, b) => a - b);
-        rebuildPageIndexMap();
-        totalPages = pageNumbers.length;
+            // After deletion, reload pages from API to get authoritative numbers/ids
+            await loadPagesFromApi();
 
-        if (totalPages === 0) {
-            targetIndex = 0;
-            currentPosition = 0;
+            // Also update storyboardData.frames connections locally: shift numbers and clear references to removed page
+            try {
+                const frames = window.storyboardData && window.storyboardData.frames ? window.storyboardData.frames : [];
+                for (const fr of frames) {
+                    if (fr && fr.connected) {
+                        const cp = Number(fr.connected);
+                        if (cp === removedNum) fr.connected = '';
+                        else if (cp > removedNum) fr.connected = String(cp - 1);
+                    }
+                }
+            } catch (e) { /* ignore */ }
+
+            // Adjust targetIndex if needed
+            if (removedIdx < targetIndex) targetIndex = Math.max(0, targetIndex - 1);
+            else if (removedIdx === targetIndex) targetIndex = Math.max(0, targetIndex - 1);
+            navigateTo(Math.min(targetIndex, totalPages - 1));
+
             updateCards();
             updateSlider();
             updatePageIndicator();
             updateButtons();
-        } else {
-            if (removedIdx < targetIndex) targetIndex = Math.max(0, targetIndex - 1);
-            else if (removedIdx === targetIndex) targetIndex = Math.max(0, targetIndex - 1);
-            navigateTo(Math.min(targetIndex, totalPages - 1));
+
+        } catch (e) {
+            console.error('handleDeletePage failed', e);
+            alert('Ошибка при удалении страницы');
         }
-
-        updateCards();
-        updateSlider();
-        updatePageIndicator();
-        updateButtons();
-
-        downloadUpdatedStoryboardFile();
     }
 
     // === INITIALIZATION ===
@@ -743,5 +785,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateButtons();
     }
 
-    init();
+    // Load pages from API first, then initialize UI
+    (async () => {
+        await loadPagesFromApi();
+        init();
+    })();
 });

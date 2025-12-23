@@ -16,7 +16,10 @@ class TextEditor {
 
 		this.undoStack = [];
 		this.redoStack = [];
-		this.currentPage = 1;
+		// Determine page number and id from query params if present
+		const params = new URLSearchParams(window.location.search);
+		this.currentPage = Number(params.get('pageNum')) || 1;
+		this.currentPageId = params.get('pageId') ? Number(params.get('pageId')) : null;
 
 		// Page storage (simulated in-memory for now)
 		this.pages = {};
@@ -164,24 +167,57 @@ class TextEditor {
 		this.updateButtonStates();
 	}
 
-	savePage() {
-		// Save current page content to memory (in a real app, send to backend)
+	async savePage() {
+		// Save current page content to memory
 		this.pages[this.currentPage] = this.textContent.innerHTML;
 		console.log(`Page ${this.currentPage} saved to memory`);
+
+		// If pageId is known, persist to server
+		if (this.currentPageId) {
+			try {
+				const resp = await fetch('/api/page/redoPage', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ page_id: Number(this.currentPageId), text: this.textContent.innerHTML })
+				});
+				if (!resp.ok) throw new Error('Failed to save page');
+				console.log('Page saved to server');
+			} catch (e) {
+				console.error('Error saving page to server', e);
+				alert('Ошибка при сохранении страницы на сервер');
+			}
+		}
 	}
 
-	loadPage(pageNum) {
+	async loadPage(pageNum) {
 		// Save current page before switching
 		this.savePage();
 
 		this.currentPage = pageNum;
 		this.pageNumber.value = pageNum;
 
-		// Load page content
-		if (this.pages[pageNum]) {
-			this.textContent.innerHTML = this.pages[pageNum];
+		// Load page content from server if pageId present
+		if (this.currentPageId) {
+			try {
+				const resp = await fetch(`/api/page/${this.currentPageId}/loadPage`);
+				if (resp.ok) {
+					const data = await resp.json();
+					this.textContent.innerHTML = data.text || '';
+				} else {
+					console.warn('loadPage API returned', resp.status);
+					this.textContent.innerHTML = '';
+				}
+			} catch (e) {
+				console.error('Error loading page from API', e);
+				this.textContent.innerHTML = '';
+			}
 		} else {
-			this.textContent.innerHTML = '';
+			// fallback to local storage
+			if (this.pages[pageNum]) {
+				this.textContent.innerHTML = this.pages[pageNum];
+			} else {
+				this.textContent.innerHTML = '';
+			}
 		}
 
 		// Clear undo/redo for new page
