@@ -114,7 +114,7 @@ function renderFramesLegacy() {
 
         // Кнопка удаления
         const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'frame-delete-btn';
+        deleteBtn.className = 'page-delete-btn';
         deleteBtn.innerHTML = '×';
         deleteBtn.title = 'Удалить кадр';
         deleteBtn.addEventListener('click', async (e) => {

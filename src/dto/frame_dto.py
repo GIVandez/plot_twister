@@ -63,3 +63,13 @@ class ConnectFrameRequest(BaseModel):
 
 class DisconnectFrameRequest(BaseModel):
     frame_id: int = Field(..., gt=0)
+
+
+class FrameTimeUpdate(BaseModel):
+    frame_id: int = Field(..., gt=0)
+    start_time: int
+    end_time: int
+
+
+class BatchUpdateTimesRequest(BaseModel):
+    updates: List[FrameTimeUpdate]

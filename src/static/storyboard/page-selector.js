@@ -475,9 +475,7 @@
             // Отправляем запрос на сервер для связи
             const success = await store.connectFrame(store.getFrameByIndex(pendingFrameIndex).id, selectedPage.num);
             if (success) {
-                // Обновляем локальные данные
-                store.setFrameValuesByIndex(pendingFrameIndex, { connectedPage: selectedPage.num });
-
+                // `connectFrame` уже обновил локальные данные; просто перерисуем UI
                 if (window.renderFrames) {
                     window.renderFrames();
                 }

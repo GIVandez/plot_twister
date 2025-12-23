@@ -267,13 +267,24 @@ async function editDescription(index, descDiv) {
 
         return new Promise(async (resolve) => {
             const newDescription = textarea.value;
-            // Update via API
+            // Update via API (or local) but treat as one undoable action that also persists to DB
             const frameData = store.getFrameByIndex(index);
-            if (frameData && store.redoDescription) {
-                await store.redoDescription(frameData.id, newDescription);
-            } else {
-                // Fallback to local update
-                store.setFrameValuesByIndex(index, { description: newDescription });
+            const beforeSnapshot = store.getSnapshot ? store.getSnapshot() : null;
+            const prevSuppress = !!store._suppressUndo;
+            try {
+                store._suppressUndo = true;
+                if (frameData && store.redoDescription) {
+                    await store.redoDescription(frameData.id, newDescription);
+                } else {
+                    // Fallback to local update
+                    store.setFrameValuesByIndex(index, { description: newDescription });
+                }
+            } finally {
+                store._suppressUndo = prevSuppress;
+            }
+            const afterSnapshot = store.getSnapshot ? store.getSnapshot() : null;
+            if (!prevSuppress && beforeSnapshot && afterSnapshot && window.undoManager) {
+                window.undoManager.pushAction({ type: 'modify', before: beforeSnapshot, after: afterSnapshot, meta: { id: frameData ? frameData.id : null, description: newDescription } });
             }
             
             // Сохраняем полный текст
@@ -291,6 +302,20 @@ async function editDescription(index, descDiv) {
                 
                 // Применяем обрезку сразу синхронно
                 applyTruncation(descDiv);
+                
+                // Если справа открыта панель информации об этом кадре, обновим её описание
+                try {
+                    const infoDisplay = document.querySelector('.frame-info-display');
+                    if (infoDisplay && frameData && String(infoDisplay.dataset.frameId) === String(frameData.id)) {
+                        const descInfo = infoDisplay.querySelector('.frame-description-info');
+                        if (descInfo) {
+                            descInfo.dataset.fullText = newDescription;
+                            descInfo.innerHTML = formatDescription(newDescription);
+                            // ensure visible class is present
+                            descInfo.classList.add('visible');
+                        }
+                    }
+                } catch (e) { /* ignore DOM errors */ }
                 
                 cleanupEditor();
                 if (resolver) resolver();
@@ -456,37 +481,22 @@ function renderFrames() {
         const buttonsContainer = document.createElement('div');
         buttonsContainer.className = 'frame-buttons-container';
         
-        // Кнопка выбора плана кадра (shot size)
+        // Кнопка выбора плана кадра (теперь delete button)
         const shotSizeButton = document.createElement('button');
-        shotSizeButton.className = 'frame-button shot-size';
-        shotSizeButton.textContent = frame.shotSize || 'Shot Size';
-        shotSizeButton.title = 'Выбрать план кадра';
-        // сохраняем предыдущее значение для быстрого отката (правый клик)
-        shotSizeButton.dataset.prevShotSize = (frame.shotSize == null ? '' : String(frame.shotSize));
-        shotSizeButton.addEventListener('click', (e) => {
+        shotSizeButton.className = 'frame-delete-time-btn';
+        shotSizeButton.innerHTML = '×';
+        shotSizeButton.title = 'Удалить кадр';
+        shotSizeButton.addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (window.selectShotSize) {
-                window.selectShotSize(index);
-            }
-        });
-        shotSizeButton.addEventListener('contextmenu', (e) => {
-            // правый клик — откат к предыдущему значению
-            e.preventDefault();
-            e.stopPropagation();
-            const prev = shotSizeButton.dataset.prevShotSize;
-            const store = window.storyboardStore;
-            if (store && prev !== undefined) {
-                store.setFrameValuesByIndex(index, { shotSize: prev || null });
-                if (window.renderFrames) window.renderFrames();
-            }
+            await deleteFrame(index);
         });
 
         // Кнопка привязки страницы (page connect)
         const pageConnectButton = document.createElement('button');
         pageConnectButton.className = 'frame-button page-connect';
 
-        // Отображаем номер привязанной страницы или "Connect", если страница не привязана
-        const pageNumber = frame.connectedPage || 'Connect';
+        // Отображаем номер привязанной страницы или "connect", если страница не привязана
+        const pageNumber = frame.connectedPage || 'connect';
         pageConnectButton.textContent = pageNumber;
         pageConnectButton.title = frame.connectedPage ? 
             `Открыть страницу ${frame.connectedPage}` : 
@@ -514,21 +524,10 @@ function renderFrames() {
         buttonsContainer.appendChild(shotSizeButton);
         buttonsContainer.appendChild(pageConnectButton);
 
-        // Кнопка удаления
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'frame-delete-btn';
-        deleteBtn.innerHTML = '×';
-        deleteBtn.title = 'Удалить кадр';
-        deleteBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            await deleteFrame(index);
-        });
-
         frameDiv.appendChild(imgDiv);
         frameDiv.appendChild(descDiv);
         frameDiv.appendChild(timeVerticalContainer);
         frameDiv.appendChild(buttonsContainer);
-        frameDiv.appendChild(deleteBtn);
 
         container.appendChild(frameDiv);
         
@@ -548,6 +547,11 @@ function renderFrames() {
 }
 
 function editTime(index, type, timeDiv) {
+    // Запрещаем редактирование start_time первого кадра (должно быть всегда 00:00)
+    if (index === 0 && type === 'start') {
+        return; // Не позволяем редактировать
+    }
+
     const container = timeDiv.parentElement;
     const display = timeDiv;
     const edit = container.querySelector('.frame-time-edit');
@@ -565,6 +569,14 @@ function editTime(index, type, timeDiv) {
 }
 
 async function saveTime(index, type, editInput, timeDiv) {
+    // Запрещаем изменение start_time первого кадра (должно быть всегда 00:00)
+    if (index === 0 && type === 'start') {
+        editInput.value = formatTime(0); // Восстанавливаем 00:00
+        editInput.style.display = 'none';
+        timeDiv.style.display = 'flex';
+        return;
+    }
+
     const newTime = parseTime(editInput.value);
     const store = window.storyboardStore;
     if (!store) return;
@@ -587,18 +599,38 @@ async function saveTime(index, type, editInput, timeDiv) {
             const oldValue = frame[type];
             const delta = newTime - oldValue;
 
-            // Update current frame via API
-            if (type === 'start' && store.redoStartTime) {
-                await store.redoStartTime(frame.id, newTime);
-            } else if (type === 'end' && store.redoEndTime) {
-                await store.redoEndTime(frame.id, newTime);
-            } else {
-                store.setFrameValuesByIndex(index, { [type]: newTime });
+            // Perform current-frame update and domino shift as a single undoable action.
+            // Capture snapshot before changes, suppress internal undo during batch, then push one combined action.
+            const beforeSnapshot = store.getSnapshot ? store.getSnapshot() : null;
+            const prevSuppress = !!store._suppressUndo;
+            try {
+                store._suppressUndo = true;
+                // Update current frame via API or local
+                if (type === 'start' && store.redoStartTime) {
+                    await store.redoStartTime(frame.id, newTime);
+                } else if (type === 'end' && store.redoEndTime) {
+                    await store.redoEndTime(frame.id, newTime);
+                } else {
+                    store.setFrameValuesByIndex(index, { [type]: newTime });
+                }
+
+                // Domino effect: shift subsequent frames locally
+                if (type === 'end' && delta !== 0) {
+                    shiftFramesFromIndex(index + 1, delta);
+                }
+            } finally {
+                store._suppressUndo = prevSuppress;
             }
 
-            // Domino effect: shift subsequent frames when end time changes
-            if (type === 'end' && delta !== 0) {
-                await shiftFramesFromIndexWithAPI(index + 1, delta);
+            // Record a single undo action covering both the edited frame and shifted frames
+            const afterSnapshot = store.getSnapshot ? store.getSnapshot() : null;
+            if (!prevSuppress && beforeSnapshot && afterSnapshot && window.undoManager) {
+                window.undoManager.pushAction({ type: 'modify', before: beforeSnapshot, after: afterSnapshot, meta: { index, type, newTime } });
+            }
+
+            // Fire-and-forget background sync to server (use alreadyApplied=true)
+            if (type === 'end' && delta !== 0 && typeof shiftFramesFromIndexWithAPI === 'function') {
+                shiftFramesFromIndexWithAPI(index + 1, delta, true).catch(err => console.error('Error syncing shifts:', err));
             }
 
             timeDiv.textContent = formatTime(newTime);
@@ -616,40 +648,63 @@ async function saveTime(index, type, editInput, timeDiv) {
     timeDiv.style.display = 'flex';
 }
 
-// Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд с отправкой на сервер
-async function shiftFramesFromIndexWithAPI(startIndex, delta) {
+// Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд с отправкой на сервер (batch API)
+// Параметр alreadyApplied указывает, что сдвиг уже применён локально — тогда не прибавляем delta снова,
+// а используем текущие значения фреймов как итоговые для синхронизации с сервером.
+async function shiftFramesFromIndexWithAPI(startIndex, delta, alreadyApplied = false) {
     const store = window.storyboardStore;
     if (!store || !Number.isFinite(delta) || delta === 0) return;
-    
+
     const frameCount = store.getFrameCount();
-    const updatePromises = [];
-    for (let i = startIndex; i < frameCount; i++) {
+    const updates = [];
+    for (let i = Math.max(startIndex, 1); i < frameCount; i++) {  // Начинаем с 1, чтобы не сдвигать первый кадр
         const f = store.getFrameByIndex(i);
         if (!f) continue;
-        const newStart = Math.max(0, Math.round(f.start + delta));
-        const newEnd = Math.max(newStart, Math.round(f.end + delta));
-        
-        // Update via API
-        if (store.redoStartTime) {
-            updatePromises.push(store.redoStartTime(f.id, newStart));
+        let newStart, newEnd;
+        if (alreadyApplied) {
+            newStart = Math.max(0, Math.round(f.start));
+            newEnd = Math.max(newStart, Math.round(f.end));
+        } else {
+            newStart = Math.max(0, Math.round(f.start + delta));
+            newEnd = Math.max(newStart, Math.round(f.end + delta));
         }
-        if (store.redoEndTime) {
-            updatePromises.push(store.redoEndTime(f.id, newEnd));
-        }
+        updates.push({
+            frame_id: f.id,
+            start_time: newStart,
+            end_time: newEnd
+        });
     }
-    await Promise.all(updatePromises);
+
+    if (updates.length > 0 && store.batchUpdateTimes) {
+        await store.batchUpdateTimes(updates);
+    }
 }
 
 // Утилита: сдвинуть start/end всех кадров начиная с startIndex на delta секунд (локально, без API)
 function shiftFramesFromIndex(startIndex, delta) {
     const store = window.storyboardStore;
     if (!store || !Number.isFinite(delta) || delta === 0) return;
-    for (let i = startIndex; i < store.getFrameCount(); i++) {
-        const f = store.getFrameByIndex(i);
-        if (!f) continue;
-        const newStart = Math.max(0, Math.round(f.start + delta));
-        const newEnd = Math.max(newStart, Math.round(f.end + delta));
-        store.setFrameValuesByIndex(i, { start: newStart, end: newEnd });
+
+    // Сделаем операцию атомарной для undo: снимем снимок до, подавим внутренние записи undo,
+    // применим все изменения, затем восстановим и запишем единый action.
+    const before = store.getSnapshot ? store.getSnapshot() : null;
+    const prevSuppress = !!store._suppressUndo;
+    try {
+        store._suppressUndo = true;
+        for (let i = Math.max(startIndex, 1); i < store.getFrameCount(); i++) {  // Начинаем с 1, чтобы не сдвигать первый кадр
+            const f = store.getFrameByIndex(i);
+            if (!f) continue;
+            const newStart = Math.max(0, Math.round(f.start + delta));
+            const newEnd = Math.max(newStart, Math.round(f.end + delta));
+            store.setFrameValuesByIndex(i, { start: newStart, end: newEnd });
+        }
+    } finally {
+        store._suppressUndo = prevSuppress;
+    }
+
+    const after = store.getSnapshot ? store.getSnapshot() : null;
+    if (!prevSuppress && before && after && window.undoManager) {
+        window.undoManager.pushAction({ type: 'modify', before, after, meta: { startIndex, delta } });
     }
 }
 window.shiftFramesFromIndex = shiftFramesFromIndex;
@@ -661,6 +716,22 @@ async function deleteFrame(index) {
 
     const frame = store.getFrameByIndex(index);
     if (!frame) return;
+
+    // Закрыть панель информации о кадре (если открыта для этого или любого кадра)
+    try {
+        const infoDisplay = document.querySelector('.frame-info-display');
+        if (infoDisplay) {
+            // Если у infoDisplay есть dataset.frameId и он совпадает с текущим кадром — удаляем.
+            // Иначе удалим всё равно, чтобы не оставлять открытые окна после удаления.
+            infoDisplay.remove();
+        }
+        // Также закрываем элементы с классом 'frame-image-info visible'
+        document.querySelectorAll('.frame-image-info.visible').forEach(el => {
+            const parent = el.closest('.frame-info-display');
+            if (parent) parent.remove();
+            else el.remove();
+        });
+    } catch (e) { /* ignore DOM errors */ }
 
     // Calculate the duration of the frame to shift subsequent frames
     const duration = frame.end - frame.start;
@@ -674,6 +745,18 @@ async function deleteFrame(index) {
             store.setFrameValuesById(f.id, { number: idx + 1 });
         });
 
+        // Если удалён первый кадр, устанавливаем start_time нового первого на 00:00
+        // и сохраняем его исходную длительность (восстанавливаем end = start + duration)
+        if (index === 0 && frames.length > 0) {
+            const first = store.getFrameByIndex(0);
+            if (first) {
+                const origDuration = Math.max(0, Math.round(first.end - first.start));
+                store.setFrameValuesByIndex(0, { start: 0, end: Math.max(0, 0 + origDuration) });
+            } else {
+                store.setFrameValuesByIndex(0, { start: 0 });
+            }
+        }
+
         // Shift subsequent frames back by the duration locally first
         if (duration > 0) {
             shiftFramesFromIndex(index, -duration);
@@ -684,9 +767,9 @@ async function deleteFrame(index) {
             window.renderFrames();
         }
 
-        // Then sync shifts with server in background
+        // Then sync shifts with server in background (we already applied the shift locally)
         if (duration > 0) {
-            shiftFramesFromIndexWithAPI(index, -duration).catch(err => console.error('Error syncing shifts:', err));
+            shiftFramesFromIndexWithAPI(index, -duration, true).catch(err => console.error('Error syncing shifts:', err));
         }
 
         // Обновляем скроллбар после удаления
@@ -704,3 +787,40 @@ window.deleteFrame = deleteFrame;
 window.formatTime = formatTime;
 window.parseTime = parseTime;
 window.shiftFramesFromIndexWithAPI = shiftFramesFromIndexWithAPI;
+
+// Обновить открытую панель информации о кадре по данным из store (используется при undo/redo)
+function refreshOpenFrameInfoFromStore() {
+    try {
+        const infoDisplay = document.querySelector('.frame-info-display');
+        if (!infoDisplay) return;
+        const store = window.storyboardStore;
+        if (!store) return;
+        const fid = infoDisplay.dataset && infoDisplay.dataset.frameId ? infoDisplay.dataset.frameId : null;
+        if (!fid) return;
+        const frame = store.getFrameById(fid);
+        if (!frame) return;
+
+        // Обновляем описание
+        const descInfo = infoDisplay.querySelector('.frame-description-info');
+        if (descInfo) {
+            descInfo.dataset.fullText = frame.description || '';
+            descInfo.innerHTML = formatDescription(frame.description || '');
+        }
+
+        // Обновляем время начала/конца в панели
+        const timeStartBtn = infoDisplay.querySelector('.frame-control-btn.time-start');
+        const timeEndBtn = infoDisplay.querySelector('.frame-control-btn.time-end');
+        if (timeStartBtn) timeStartBtn.textContent = formatTime(frame.start);
+        if (timeEndBtn) timeEndBtn.textContent = formatTime(frame.end);
+
+    } catch (e) {
+        // ignore
+        console.error('refreshOpenFrameInfoFromStore error', e);
+    }
+}
+
+// Обновляем панель при изменении стека undo/redo
+window.addEventListener('undoStackChanged', () => {
+    // небольшая отложенная синхронизация на случай асинхронных sync-операций
+    setTimeout(refreshOpenFrameInfoFromStore, 50);
+});

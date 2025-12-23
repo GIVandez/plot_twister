@@ -108,49 +108,53 @@ function showFrameInfo(frameData) {
     timeEndBtn.textContent = formatTime(frameData.end);
     timeEndBtn.title = 'Время конца кадра (клик для редактирования)';
     
-    // Кнопка плана кадра
+    // Кнопка удаления (замещает прежнюю кнопку плана кадра)
     const shotSizeBtn = document.createElement('button');
-    shotSizeBtn.className = 'frame-control-btn shot-size';
-    shotSizeBtn.textContent = frameData.shotSize || 'Shot Size';
-    shotSizeBtn.title = 'План кадра';
+    // Используем стили кнопки времени конца и дополнительный маркер для удаления
+    shotSizeBtn.className = 'frame-control-btn time-end frame-delete-time-btn';
+    shotSizeBtn.innerHTML = '×';
+    shotSizeBtn.title = 'Удалить кадр';
     shotSizeBtn.addEventListener('click', (e) => {
-        // Останавливаем всплытие события, чтобы не обрабатывалось другими обработчиками
         e.stopPropagation();
-        // Здесь можно добавить логику выбора плана кадра
-        const newShotSize = prompt('Введите план кадра:', frameData.shotSize);
-        if (newShotSize && newShotSize !== frameData.shotSize) {
-            shotSizeBtn.textContent = newShotSize;
-            // Обновляем данные в базе
-            if (frameIndex !== -1 && store) {
-                store.setFrameValuesByIndex(frameIndex, { shotSize: newShotSize });
-                const updatedFrame = store.getFrameByIndex(frameIndex);
-                if (updatedFrame) {
-                    frameData.shotSize = updatedFrame.shotSize;
-                }
-            } else {
-                frameData.shotSize = newShotSize;
-            }
+        if (!confirm('Вы уверены, что хотите удалить этот кадр?')) return;
+        // Предпочтительно использовать глобальную функцию удаления, если она доступна
+        if (typeof window.deleteFrame === 'function' && frameIndex !== -1) {
+            window.deleteFrame(frameIndex);
+            return;
+        }
+        // Паджбек: вызов метода store.deleteFrame по id
+        if (frameData && frameData.id && store && typeof store.deleteFrame === 'function') {
+            store.deleteFrame(frameData.id).then(ok => {
+                if (ok && window.renderFrames) window.renderFrames();
+            }).catch(err => console.error('deleteFrame fallback failed', err));
         }
     });
     
-    // Кнопка привязанной страницы
+    // Кнопка привязанной страницы — сделать поведение как у левой `frame-button page-connect`
     const pageConnectBtn = document.createElement('button');
     pageConnectBtn.className = 'frame-control-btn page-connect';
-    const pageNumber = frameData.connectedPage || 'No Page';
+    const pageNumber = (typeof frameData.connectedPage !== 'undefined' && frameData.connectedPage !== null && frameData.connectedPage !== '') ? frameData.connectedPage : 'connect';
     pageConnectBtn.textContent = `${pageNumber}`;
-    pageConnectBtn.title = frameData.connectedPage ? 
-        `Открыть страницу ${frameData.connectedPage}` : 
-        'Не привязана к странице';
+    pageConnectBtn.title = frameData.connectedPage ?
+        `Открыть страницу ${frameData.connectedPage}` :
+        'Привязать к странице';
+    // сохраняем предыдущее значение для быстрого отката (правый клик)
+    pageConnectBtn.dataset.prevConnectedPage = (frameData.connectedPage == null ? '' : String(frameData.connectedPage));
     pageConnectBtn.addEventListener('click', (e) => {
-        // Останавливаем всплытие события, чтобы не обрабатывалось другими обработчиками
         e.stopPropagation();
-        if (frameData.connectedPage) {
-            // Открываем страницу сценария
-            if (window.openScriptPage) {
-                window.openScriptPage(frameData.connectedPage, frameIndex);
-            }
-        } else {
-            alert('Кадр не привязан к странице сценария');
+        if (window.connectToPage) {
+            window.connectToPage(frameIndex);
+        }
+    });
+    pageConnectBtn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const prev = pageConnectBtn.dataset.prevConnectedPage;
+        const store = window.storyboardStore;
+        if (store && prev !== undefined) {
+            const val = prev === '' ? null : (isNaN(prev) ? prev : Number(prev));
+            store.setFrameValuesByIndex(frameIndex, { connectedPage: val });
+            if (window.renderFrames) window.renderFrames();
         }
     });
     
@@ -162,6 +166,11 @@ function showFrameInfo(frameData) {
             // Останавливаем всплытие события, чтобы не обрабатывалось другими обработчиками
             e.stopPropagation();
             if (isEditing) return;
+            
+            // Запрещаем редактирование start_time первого кадра (должно быть всегда 00:00)
+            if (frameIndex === 0 && timeType === 'start') {
+                return; // Не позволяем редактировать
+            }
             
             isEditing = true;
             const originalTime = btn.textContent;
@@ -187,6 +196,13 @@ function showFrameInfo(frameData) {
             }, 0);
             
             async function saveTime() {
+                // Запрещаем изменение start_time первого кадра (должно быть всегда 00:00)
+                if (frameIndex === 0 && timeType === 'start') {
+                    btn.innerHTML = formatTime(0); // Восстанавливаем 00:00
+                    isEditing = false;
+                    return;
+                }
+
                 const newTimeStr = input.value.trim();
                 const newTime = parseTime(newTimeStr);
                 
@@ -197,28 +213,42 @@ function showFrameInfo(frameData) {
                     } else if (timeType === 'end' && newTime <= frameData.start) {
                         alert('Время конца должно быть больше времени начала');
                     } else {
-                        // Сохраняем изменения
+                        // Сохраняем изменения как единый undoable шаг: обновление текущего кадра + сдвиг последующих.
                         const oldTime = frameData[timeType];
-                        frameData[timeType] = newTime;
-                        btn.textContent = formatTime(newTime);
-
-                        // Calculate delta for domino effect
                         const delta = newTime - oldTime;
-
-                        // Update current frame via API
-                        if (frameIndex !== -1 && store) {
-                            if (timeType === 'start' && store.redoStartTime) {
-                                await store.redoStartTime(frameData.id, newTime);
-                            } else if (timeType === 'end' && store.redoEndTime) {
-                                await store.redoEndTime(frameData.id, newTime);
-                            } else {
-                                store.setFrameValuesByIndex(frameIndex, { [timeType]: newTime });
+                        const beforeSnapshot = store.getSnapshot ? store.getSnapshot() : null;
+                        const prevSuppress = !!store._suppressUndo;
+                        try {
+                            store._suppressUndo = true;
+                            // Apply change to current frame
+                            frameData[timeType] = newTime;
+                            btn.textContent = formatTime(newTime);
+                            if (frameIndex !== -1 && store) {
+                                if (timeType === 'start' && store.redoStartTime) {
+                                    await store.redoStartTime(frameData.id, newTime);
+                                } else if (timeType === 'end' && store.redoEndTime) {
+                                    await store.redoEndTime(frameData.id, newTime);
+                                } else {
+                                    store.setFrameValuesByIndex(frameIndex, { [timeType]: newTime });
+                                }
                             }
+
+                            // Domino effect locally
+                            if (timeType === 'end' && delta !== 0 && typeof shiftFramesFromIndex === 'function') {
+                                shiftFramesFromIndex(frameIndex + 1, delta);
+                            }
+                        } finally {
+                            store._suppressUndo = prevSuppress;
                         }
 
-                        // Domino effect: shift subsequent frames when end time changes
-                        if (timeType === 'end' && delta !== 0) {
-                            await shiftFramesFromIndexWithAPI(frameIndex + 1, delta);
+                        const afterSnapshot = store.getSnapshot ? store.getSnapshot() : null;
+                        if (!prevSuppress && beforeSnapshot && afterSnapshot && window.undoManager) {
+                            window.undoManager.pushAction({ type: 'modify', before: beforeSnapshot, after: afterSnapshot, meta: { id: frameData.id, timeType, newTime } });
+                        }
+
+                        // Background sync to server
+                        if (timeType === 'end' && delta !== 0 && typeof shiftFramesFromIndexWithAPI === 'function') {
+                            shiftFramesFromIndexWithAPI(frameIndex + 1, delta, true).catch(err => console.error('Error syncing shifts:', err));
                         }
 
                         // Обновляем отображение в левой панели
@@ -1056,27 +1086,7 @@ async function syncOrderFromDOM() {
                 store.setFrameValuesById(id, { start, end });
                 currentStart = end;
             });
-            // Update UI immediately
-            if (window.renderFrames) {
-                window.renderFrames();
-            }
-            // Then sync with server in background
-            const updatePromises = [];
-            currentStart = originalFirstStart;
-            finalIds.forEach(id => {
-                const dur = durationsById[String(id)] != null ? durationsById[String(id)] : 15;
-                const start = Math.round(Math.max(0, currentStart));
-                const end = Math.round(start + dur);
-                if (store.redoStartTime) {
-                    updatePromises.push(store.redoStartTime(id, start));
-                }
-                if (store.redoEndTime) {
-                    updatePromises.push(store.redoEndTime(id, end));
-                }
-                currentStart = end;
-            });
-            // Don't await, let it sync in background
-            Promise.all(updatePromises).catch(err => console.error('Error syncing times:', err));
+            // UI will be updated after dragAndDropFrame call in onMouseUp
         }
 
         store._suppressUndo = false;

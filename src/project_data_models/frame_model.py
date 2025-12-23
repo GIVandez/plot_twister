@@ -154,6 +154,16 @@ class FrameModel:
                 print(f"Frame {frame_id} not found in project {project_id}")
                 return False
             
+            # Сохраняем длительности слотов (позиции) в текущем порядке — они привязаны к таймлайну,
+            # а не к самим кадрам. При перестановке слоты остаются прежними, кадры займут их.
+            slot_durations = []
+            for fr in frames:
+                try:
+                    dur = max(0, (fr.end_time or 0) - (fr.start_time or 0))
+                except Exception:
+                    dur = 0
+                slot_durations.append(int(dur))
+
             # Удаляем кадр из списка
             moved_frame = frames.pop(frame_index)
             
@@ -174,9 +184,24 @@ class FrameModel:
             # Теперь устанавливаем финальные положительные номера
             for i, frame in enumerate(frames):
                 frame.number = i + 1
-            
+
+            # Пересчитываем start_time/end_time для всех кадров, используя сохранённые длительности слотов.
+            # Длительности позиций (slot_durations) применяются к новым кадрам в порядке их появления.
+            current_start = 0
+            for i, frame in enumerate(frames):
+                dur = 0
+                if i < len(slot_durations):
+                    dur = int(slot_durations[i])
+                frame.start_time = int(current_start)
+                frame.end_time = int(current_start + dur)
+                current_start = frame.end_time
+
+            # Устанавливаем start_time первого кадра на 00:00
+            if frames:
+                frames[0].start_time = 0
+
             session.commit()
-            print(f"reorder_frames: successfully reordered frames")
+            print(f"reorder_frames: successfully reordered frames and updated times")
             return True
             
         except Exception as e:
@@ -224,8 +249,46 @@ class FrameModel:
         Returns:
             success: bool - успешность операции
         """
-        # Метод delete_frame уже удаляет изображение кадра
-        return self.db.delete_frame(frame_id)
+        session = self.Session()
+        try:
+            # Получаем project_id и номер кадра
+            frame = session.query(Frame).filter(Frame.id == frame_id).first()
+            if not frame:
+                return False
+            project_id = frame.project_id
+            deleted_number = frame.number
+            
+            # Удаляем кадр
+            session.delete(frame)
+            session.commit()
+            
+            # Пересчитываем номера и времена для оставшихся кадров
+            frames = session.query(Frame).filter(Frame.project_id == project_id).order_by(Frame.number).all()
+            
+            # Обновляем номера
+            for i, f in enumerate(frames):
+                f.number = i + 1
+            
+            # Пересчитываем времена, сохраняя длительности
+            current_start = 0
+            for f in frames:
+                dur = max(0, (f.end_time or 0) - (f.start_time or 0))
+                f.start_time = current_start
+                f.end_time = current_start + dur
+                current_start = f.end_time
+            
+            # Устанавливаем start_time первого кадра на 00:00
+            if frames:
+                frames[0].start_time = 0
+            
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            print(f"Error deleting frame: {e}")
+            return False
+        finally:
+            session.close()
     
     def get_project_frames(self, project_id: int) -> list:
         """

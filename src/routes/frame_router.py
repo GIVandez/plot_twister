@@ -3,7 +3,8 @@ from fastapi.responses import FileResponse
 from dto.frame_dto import (
     DragAndDropFrameRequest, DeleteImageRequest, FrameInfo, LoadFramesResponse,
     RedoStartTimeRequest, RedoEndTimeRequest, NewFrameRequest, NewFrameResponse,
-    DeleteFrameRequest, RedoDescriptionRequest, ConnectFrameRequest, DisconnectFrameRequest
+    DeleteFrameRequest, RedoDescriptionRequest, ConnectFrameRequest, DisconnectFrameRequest,
+    BatchUpdateTimesRequest
 )
 from project_data_models.frame_model import FrameModel
 from project_data_models.project_model import ProjectModel
@@ -430,6 +431,48 @@ async def disconnect_frame(request: DisconnectFrameRequest):
         return {"success": True}
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
+
+
+@router.post("/api/frame/batchUpdateTimes")
+async def batch_update_times(request: BatchUpdateTimesRequest):
+    """Массовое обновление времён нескольких кадров за один запрос"""
+    try:
+        errors = []
+        success_count = 0
+        
+        for update in request.updates:
+            # Проверяем валидность времени
+            if update.start_time >= update.end_time:
+                errors.append(f"Frame {update.frame_id}: start_time >= end_time")
+                continue
+            
+            # Проверяем существование кадра
+            frame_info = frame_model.get_frame_info(update.frame_id)
+            if not frame_info:
+                errors.append(f"Frame {update.frame_id}: not found")
+                continue
+            
+            # Обновляем время
+            success = frame_model.edit_frame_info(update.frame_id, {
+                'start_time': update.start_time,
+                'end_time': update.end_time
+            })
+            
+            if success:
+                success_count += 1
+            else:
+                errors.append(f"Frame {update.frame_id}: update failed")
+        
+        return {
+            "success": len(errors) == 0,
+            "updated_count": success_count,
+            "errors": errors
+        }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

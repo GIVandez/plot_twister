@@ -148,14 +148,12 @@ class ScriptPagesManager {
         // Отправляем запрос на сервер для отключения
         const success = await store.disconnectFrame(frame.id);
         if (success) {
-            // Обновляем локальные данные
-            store.setFrameValuesByIndex(this.currentFrameIndex, { connectedPage: null });
-            
-            // Обновляем отображение кадров
+            // `disconnectFrame` уже обновил локальные данные; просто перерисуем UI
             if (window.renderFrames) {
                 window.renderFrames();
             }
-            
+            // Закрываем открытую страницу (pageDisplay) после отвязки
+            try { this.hidePage(); } catch (e) { /* ignore */ }
             alert('Связь кадра со страницей удалена.');
         } else {
             alert('Ошибка при удалении связи.');

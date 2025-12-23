@@ -139,7 +139,7 @@
         // notify listeners about stack change
         try { window.dispatchEvent(new Event('undoStackChanged')); } catch(e){/*ignore*/}
       },
-      undo() {
+      async undo() {
         const store = window.storyboardStore;
         if (!store) return;
         if (idx < 0) return;
@@ -150,10 +150,19 @@
           return;
         }
         try {
+          // Capture current snapshot (after) to compute deletions
+          const currentSnapshot = getSnapshot();
           store._suppressUndo = true;
           setSnapshot(action.before);
           if (window.renderFrames) window.renderFrames();
           if (window.updateLeftScrollbar) window.updateLeftScrollbar();
+
+          // Best-effort: synchronize server to match the 'before' snapshot
+          try {
+            await syncSnapshotToServer(action.before, currentSnapshot);
+          } catch (syncErr) {
+            console.error('Error syncing server on undo:', syncErr);
+          }
         } finally {
           store._suppressUndo = false;
         }
@@ -161,7 +170,7 @@
         try { window.dispatchEvent(new Event('undoStackChanged')); } catch(e){/*ignore*/}
       },
       // Новое: redo — вернуть действие, на которое был сделан undo
-      redo() {
+      async redo() {
         const store = window.storyboardStore;
         if (!store) return;
         if (idx >= stack.length - 1) return;
@@ -174,10 +183,19 @@
           return;
         }
         try {
+          // Capture current snapshot (before redo) to compute deletions
+          const currentSnapshot = getSnapshot();
           store._suppressUndo = true;
           setSnapshot(action.after);
           if (window.renderFrames) window.renderFrames();
           if (window.updateLeftScrollbar) window.updateLeftScrollbar();
+
+          // Best-effort: synchronize server to match the 'after' snapshot
+          try {
+            await syncSnapshotToServer(action.after, currentSnapshot);
+          } catch (syncErr) {
+            console.error('Error syncing server on redo:', syncErr);
+          }
         } finally {
           store._suppressUndo = false;
         }
@@ -376,6 +394,10 @@
           number: frame.number
         });
       });
+      // Устанавливаем start_time первого кадра на 00:00
+      if (frames.length > 0) {
+        frames[0].start_time = 0;
+      }
       return true;
     } catch (error) {
       console.error('Error loading frames:', error);
@@ -572,7 +594,12 @@
   }
 
   async function connectFrame(frameId, pageId) {
+    const storeObj = window.storyboardStore || {};
+    const suppress = !!storeObj._suppressUndo;
+    const beforeSnapshot = suppress ? null : getSnapshot();
+    const prevSuppress = !!storeObj._suppressUndo;
     try {
+      storeObj._suppressUndo = true;
       const response = await fetch(`${API_BASE}/api/frame/connectFrame`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -589,11 +616,24 @@
     } catch (error) {
       console.error('Error connecting frame to page:', error);
       return false;
+    } finally {
+      storeObj._suppressUndo = prevSuppress;
+      if (!prevSuppress) {
+        const afterSnapshot = getSnapshot();
+        if (beforeSnapshot && afterSnapshot && window.undoManager) {
+          window.undoManager.pushAction({ type: 'modify', before: beforeSnapshot, after: afterSnapshot, meta: { id: Number(frameId), action: 'connect', pageId: Number(pageId) } });
+        }
+      }
     }
   }
 
   async function disconnectFrame(frameId) {
+    const storeObj = window.storyboardStore || {};
+    const suppress = !!storeObj._suppressUndo;
+    const beforeSnapshot = suppress ? null : getSnapshot();
+    const prevSuppress = !!storeObj._suppressUndo;
     try {
+      storeObj._suppressUndo = true;
       const response = await fetch(`${API_BASE}/api/frame/disconnectFrame`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -609,6 +649,14 @@
     } catch (error) {
       console.error('Error disconnecting frame from page:', error);
       return false;
+    } finally {
+      storeObj._suppressUndo = prevSuppress;
+      if (!prevSuppress) {
+        const afterSnapshot = getSnapshot();
+        if (beforeSnapshot && afterSnapshot && window.undoManager) {
+          window.undoManager.pushAction({ type: 'modify', before: beforeSnapshot, after: afterSnapshot, meta: { id: Number(frameId), action: 'disconnect' } });
+        }
+      }
     }
   }
 
@@ -654,6 +702,97 @@
     }
   }
 
+  // Batch update times for multiple frames in one request
+  async function batchUpdateTimes(updates) {
+    try {
+      const response = await fetch(`${API_BASE}/api/frame/batchUpdateTimes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates })
+      });
+      if (!response.ok) throw new Error('Failed to batch update times');
+      const data = await response.json();
+      // Update local frames
+      updates.forEach(u => {
+        const frame = frames.find(f => f.frame_id === Number(u.frame_id));
+        if (frame) {
+          frame.start_time = u.start_time;
+          frame.end_time = u.end_time;
+        }
+      });
+      return data;
+    } catch (error) {
+      console.error('Error batch updating times:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Best-effort sync: apply a full snapshot to the server.
+  // This function tries to make the server state match the provided `targetSnapshot`.
+  // It will attempt deletions, additions (via newFrame) and field updates in parallel,
+  // then reload frames from server to get canonical state.
+  async function syncSnapshotToServer(targetSnapshot, currentSnapshot) {
+    try {
+      const target = Array.isArray(targetSnapshot) ? targetSnapshot : [];
+      const current = Array.isArray(currentSnapshot) ? currentSnapshot : [];
+
+      const targetById = new Map(target.map(f => [String(f.frame_id), f]));
+      const currentById = new Map(current.map(f => [String(f.frame_id), f]));
+
+      const toDelete = [];
+      for (const [id] of currentById) {
+        if (!targetById.has(id)) toDelete.push(Number(id));
+      }
+
+      const toAdd = [];
+      for (const [id, f] of targetById) {
+        if (!currentById.has(id)) toAdd.push(f);
+      }
+
+      const toUpdate = [];
+      for (const [id, f] of targetById) {
+        if (currentById.has(id)) toUpdate.push(f);
+      }
+
+      const promises = [];
+
+      // Deletions
+      for (const id of toDelete) {
+        promises.push(deleteFrame(id).catch(err => { console.warn('sync delete failed', id, err); }));
+      }
+
+      // Additions (best-effort)
+      const projectId = getProjectIdFromFrames();
+      for (const f of toAdd) {
+        const start = f.start_time || 0;
+        const end = (typeof f.end_time === 'number') ? f.end_time : (start + 15);
+        promises.push(newFrame(projectId, f.description || '', start, end, f.connected || null).catch(err => { console.warn('sync add failed', f && f.frame_id, err); }));
+      }
+
+      // Updates: numbers, times, descriptions, connections
+      for (const f of toUpdate) {
+        const id = f.frame_id;
+        if (typeof f.number !== 'undefined') promises.push(updateFrameNumber(id, f.number).catch(() => {}));
+        if (typeof f.start_time !== 'undefined') promises.push(redoStartTime(id, f.start_time).catch(() => {}));
+        if (typeof f.end_time !== 'undefined') promises.push(redoEndTime(id, f.end_time).catch(() => {}));
+        if (typeof f.description !== 'undefined') promises.push(redoDescription(id, f.description).catch(() => {}));
+        if (typeof f.connected !== 'undefined') {
+          if (f.connected === null || f.connected === '') promises.push(disconnectFrame(id).catch(() => {}));
+          else promises.push(connectFrame(id, f.connected).catch(() => {}));
+        }
+      }
+
+      await Promise.all(promises);
+
+      // Reload canonical state
+      await loadFrames(getProjectIdFromFrames());
+      return true;
+    } catch (e) {
+      console.error('syncSnapshotToServer failed', e);
+      return false;
+    }
+  }
+
   // Helper function to get project ID from frames
   function getProjectIdFromFrames() {
     return window.currentProjectId || 1;
@@ -688,6 +827,7 @@
     deleteFrame,
     uploadImage,
     deleteImage,
+    batchUpdateTimes,
     getSnapshot,
     setSnapshot,
     _suppressUndo: false
