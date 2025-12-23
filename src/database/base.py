@@ -1,6 +1,9 @@
 import sqlalchemy as db
 
+# РАССКОМЕНИТИТЬ НУЖНОЕ
+# ВАНЯ
 #engine = db.create_engine("postgresql://aaa:aaa@localhost:5432/plot_twister")
+# ИЛЬЯ
 engine = db.create_engine("postgresql://root:root@localhost:5432/plot_twister")
 
 #conn = engine.connect()

@@ -194,3 +194,11 @@ async def load_start_page():
 @router.get("/storyboard")
 async def load_start_page():
     return FileResponse(path="static/storyboard/index.html")
+
+
+
+# TODO: API?
+
+@router.get("/text-editor")
+async def load_start_page():
+    return FileResponse(path="static/script/script_redo/TextEditor.html")

@@ -384,3 +384,10 @@ async def disconnect_frame_page(request: DisconnectFramePageRequest):
 @router.get("/project_test")
 async def load_start_page():
     return FileResponse(path="static/project/api_test.html")
+
+
+# TODO: API?
+
+@router.get("/project")
+async def load_start_page():
+    return FileResponse(path="static/project/ProjectMainPage.html")

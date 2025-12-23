@@ -70,3 +70,11 @@ async def logout(request: LogoutRequest):
 @router.get("/auth_test")
 async def load_start_page():
     return FileResponse(path="static/auth/api_test.html")
+
+
+# TODO: API?
+
+@router.get("/login")
+async def load_start_page():
+    return FileResponse(path="static/auth/login.html")
+

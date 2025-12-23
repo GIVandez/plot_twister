@@ -139,3 +139,10 @@ async def load_image(pic_path: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при чтении файла: {str(e)}"
         )
+
+
+# TODO: API?
+
+@router.get("/graphic-editor")
+async def load_start_page():
+    return FileResponse(path="static/graphiceditor/GraphicEditor.html")

@@ -196,3 +196,10 @@ async def upgrade_account(request: UpgradeAccountRequest):
 @router.get("/admin_test")
 async def load_start_page():
     return FileResponse(path="static/admin/api_test.html")
+
+
+# TODO: API?
+
+@router.get("/admin")
+async def load_start_page():
+    return FileResponse(path="static/account/admin.html")
