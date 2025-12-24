@@ -101,7 +101,61 @@
     if (del) {
       const tile = del.closest('.plus-tile'); if (tile){
         // show confirmation before deleting
-        showConfirm('Удалить элемент? Это действие необратимо.', ()=> restorePlus(tile));
+        showConfirm('Удалить элемент? Это действие необратимо.', async ()=> {
+          const type = tile.dataset.type;
+          if (type === 'story') {
+            // change visual to plus immediately
+            tile.dataset.state = '';
+            tile.innerHTML = '<button class="big-plus" aria-label="Добавить">+</button><div class="caption">Добавить раскадровку</div>';
+            try {
+              const resp = await fetch('/api/user/deleteFrames', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: Number(PROJECT_ID) })
+              });
+              if (!resp.ok) {
+                const ct = resp.headers.get('content-type') || '';
+                let errMsg = 'Ошибка удаления раскадровки';
+                if (ct.includes('application/json')) {
+                  const j = await resp.json(); errMsg = j.detail || errMsg;
+                } else {
+                  const t = await resp.text(); errMsg = t || errMsg;
+                }
+                throw new Error(errMsg);
+              }
+              // deletion succeeded
+              setProjectFlag('hasStoryboard', false);
+            } catch (err) {
+              console.error('delete frames failed', err);
+              alert('Не удалось удалить раскадровку: ' + (err.message || 'Ошибка'));
+              // restore original created UI
+              createStory(tile, false);
+            }
+            return;
+          }
+          if (tile.dataset.type === 'script') {
+            // For script, keep existing behavior: restore plus and clear flag
+            // change visual to plus
+            tile.dataset.state = '';
+            tile.innerHTML = '<button class="big-plus" aria-label="Добавить">+</button><div class="caption">Добавить сценарий</div>';
+            try {
+              const resp = await fetch('/api/user/deleteScript', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: Number(PROJECT_ID) })
+              });
+              if (!resp.ok) throw new Error('Ошибка удаления сценария');
+              setProjectFlag('hasScript', false);
+            } catch (err) {
+              console.error('delete script failed', err);
+              alert('Не удалось удалить сценарий: ' + (err.message || 'Ошибка'));
+              createScript(tile, false);
+            }
+            return;
+          }
+          // default fallback
+          restorePlus(tile);
+        });
       }
       return;
     }
