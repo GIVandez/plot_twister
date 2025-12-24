@@ -79,6 +79,6 @@ INSERT INTO frame (project_id, description, start_time, end_time, pic_path, conn
     (3, 'Тестовый кадр', 0, 5, '/uploads/test.jpg', 4, 1);
 
 -- Даем необходимые привилегии пользователю aaa (если используете другого пользователя, замените имя)
-GRANT ALL PRIVILEGES ON TABLE users TO aaa;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO aaa;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO aaa;
+-- GRANT ALL PRIVILEGES ON TABLE users TO aaa;
+-- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO aaa;
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO aaa;
