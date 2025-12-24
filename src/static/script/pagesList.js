@@ -76,8 +76,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Kick off loading pages from API
-    loadPagesFromApi();
+    // Before loading pages, verify ownership of the project
+    (async function(){
+        try{
+            const pid = window.currentProjectId || 1;
+            const login = sessionStorage.getItem('pt_login') || localStorage.getItem('pt_login');
+            if(!login){
+                window.location.href = 'http://127.0.0.1:8000/auth/login.html';
+                return;
+            }
+            const resp = await fetch(`/api/users/${encodeURIComponent(login)}/loadInfo`);
+            if(!resp.ok){
+                alert('Не удалось проверить доступ к проекту.');
+                window.location.href = 'http://127.0.0.1:8000/user';
+                return;
+            }
+            const data = await resp.json();
+            const exists = Array.isArray(data.projects) && data.projects.some(p => Number(p.project_id) === Number(pid));
+            if(!exists){
+                alert('У вас нет доступа к этому проекту.');
+                window.location.href = 'http://127.0.0.1:8000/user';
+                return;
+            }
+            // OK - load pages
+            loadPagesFromApi();
+        }catch(e){
+            console.warn('ownership check failed', e);
+            loadPagesFromApi();
+        }
+    })();
     
     // === CORE STATE ===
     let targetIndex = 0;
@@ -169,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const qs = new URLSearchParams();
                     if (pid) qs.set('pageId', String(pid));
                     qs.set('pageNum', String(thisPageNum));
+                    // include project id so editor can return back to the same project
+                    qs.set('project', window.currentProjectId || '1');
                     window.location.href = `/text-editor?${qs.toString()}`;
                 } else {
                     // if clicked card isn't centered yet, navigate to it

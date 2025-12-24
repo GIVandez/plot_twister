@@ -399,7 +399,8 @@
           end_time: frame.end_time,
           pic_path: frame.pic_path,
           connected: frame.connected || '',
-          number: frame.number
+          number: frame.number,
+          image: !!frame.pic_path
         });
       });
       // Устанавливаем start_time первого кадра на 00:00
@@ -412,6 +413,49 @@
       return false;
     }
   }
+
+  // Handle frame_updated signal from other tabs/windows (set by GraphicEditor after saving)
+  async function handleFrameUpdatedEvent() {
+    try {
+      const raw = localStorage.getItem('frame_updated');
+      if (!raw) return false;
+      let obj = null;
+      try { obj = JSON.parse(raw); } catch(e) { obj = null; }
+      if (!obj || !obj.frame_id) return false;
+      const projectId = obj.project_id || getProjectIdFromFrames();
+      // Only react when project matches current view
+      if (Number(projectId) !== Number(getProjectIdFromFrames())) return false;
+      // Load fresh frames and set cache-bust ts so renderer appends it to image URLs
+      const ok = await loadFrames(projectId);
+      if (!ok) return false;
+      try { window._frameCacheBustTs = obj.ts || Date.now(); } catch(e) {}
+      if (window.renderFrames) window.renderFrames();
+      // Clear signal so it doesn't trigger again
+      try { localStorage.removeItem('frame_updated'); } catch(e) {}
+      return true;
+    } catch(e) {
+      console.error('handleFrameUpdatedEvent error', e);
+      return false;
+    }
+  }
+
+  // Listen for storage events (other tabs/windows)
+  window.addEventListener('storage', (ev) => {
+    if (!ev) return;
+    if (ev.key === 'frame_updated') {
+      handleFrameUpdatedEvent().catch(() => {});
+    }
+  });
+
+  // When tab becomes visible, check for any pending updates
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      handleFrameUpdatedEvent().catch(() => {});
+    }
+  });
+
+  // Check once on load
+  (function() { handleFrameUpdatedEvent().catch(() => {}); })();
 
   async function loadPages(projectId) {
     try {

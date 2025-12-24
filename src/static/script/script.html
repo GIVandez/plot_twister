@@ -12,8 +12,7 @@
         <div class="menu-buttons">
             <!-- Кнопка создания страницы -->
             <button class="menu-btn add-frame-btn" id="addPageBtn" title="Добавить страницу">+</button>
-            <!-- Кнопка сохранения данных -->
-            <button class="menu-btn save-data-btn" id="saveDataBtn" title="Сохранить storyboard-data">Сохранить</button>
+
 
             <!-- Статистика: обёрнута в контейнер для абсолютного позиционирования -->
             <div class="menu-stats" id="menuStats" aria-hidden="false">
@@ -32,6 +31,8 @@
                     <button class="view-tab view-tab-board" role="tab" aria-selected="false">Раскадровка</button>
                     <button class="view-tab view-tab-script" role="tab" aria-selected="true">Сценарий</button>
                 </div>
+
+                <button class="menu-btn exit-workspace-btn" title="Выйти из рабочего пространства">×</button>
             </div>
         </div>
     </header>
@@ -68,13 +69,29 @@
     <script src="../storyboard/storyboard-data.js"></script>
     <script src="/static/script/pagesList.js"></script>
     <script>
-        // Переход на страницу раскадровки по кнопке "Раскадровка"
+        // Переход на страницу раскадровки по кнопке "Раскадровка" (с передачей project id)
         document.addEventListener('DOMContentLoaded', function () {
             const boardTab = document.querySelector('.view-tab.view-tab-board');
+            function _getProjectId() {
+                const params = new URLSearchParams(window.location.search);
+                return params.get('project') || window.currentProjectId || '1';
+            }
+
+            // Exit workspace button
+            const exitBtn = document.querySelector('.menu-btn.exit-workspace-btn');
+            if (exitBtn) {
+                exitBtn.addEventListener('click', function(e){
+                    e.preventDefault();
+                    const pid = _getProjectId();
+                    window.location.href = 'http://127.0.0.1:8000/project/ProjectMainPage.html?projectId=' + encodeURIComponent(pid);
+                });
+            }
+
             if (boardTab) {
                 boardTab.addEventListener('click', function (e) {
                     e.preventDefault();
-                    window.location.href = '/static/storyboard/index.html';
+                    const pid = _getProjectId();
+                    window.location.href = '/static/storyboard/index.html?project=' + encodeURIComponent(pid);
                 });
             }
         });

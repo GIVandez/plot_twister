@@ -381,7 +381,18 @@ function renderFrames() {
         if (frame.image) {
             const thumb = document.createElement('img');
             thumb.className = 'frame-thumb';
-            thumb.src = `/api/frame/${frame.id}/image`;
+            // Append cache-bust param if provided via location search or global ts
+            function _cacheBustedUrl(u) {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const cb = window._frameCacheBustTs || params.get('_cb');
+                    if (cb) {
+                        return u + (u.includes('?') ? '&' : '?') + '_cb=' + encodeURIComponent(cb);
+                    }
+                } catch(e) {}
+                return u;
+            }
+            thumb.src = _cacheBustedUrl(`/api/frame/${frame.id}/image`);
             thumb.alt = '';
             thumb.style.width = '100%';
             thumb.style.height = '100%';

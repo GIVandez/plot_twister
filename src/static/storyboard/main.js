@@ -10,6 +10,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load data from server
     const projectId = getProjectId();
     window.currentProjectId = projectId; // Store for later use
+
+    // Verify ownership before loading project data
+    async function verifyOwnership(pid) {
+        try {
+            const login = sessionStorage.getItem('pt_login') || localStorage.getItem('pt_login');
+            if (!login) {
+                // not logged in - go to login
+                window.location.href = 'http://127.0.0.1:8000/auth/login.html';
+                return false;
+            }
+            const resp = await fetch(`/api/users/${encodeURIComponent(login)}/loadInfo`);
+            if (!resp.ok) {
+                return false;
+            }
+            const data = await resp.json();
+            const exists = Array.isArray(data.projects) && data.projects.some(p => Number(p.project_id) === Number(pid));
+            return exists;
+        } catch (e) {
+            console.warn('verifyOwnership failed', e);
+            return false;
+        }
+    }
+
+    const allowed = await verifyOwnership(projectId);
+    if (!allowed) {
+        alert('У вас нет доступа к этому проекту.');
+        window.location.href = 'http://127.0.0.1:8000/user';
+        return;
+    }
+
     const store = window.storyboardStore;
     if (store && store.loadFrames && store.loadPages) {
         await Promise.all([
@@ -99,10 +129,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (window.initFramesClick) {
         window.initFramesClick();
-    }
-    
-    if (window.initAddFrameButton) {
-        window.initAddFrameButton();
     }
 
     // Инициализация кастомного ползунка слева
@@ -330,5 +356,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // initial initialization and a short follow-up to ensure sizes are settled
         setTimeout(updatePosition, 50);
         setTimeout(updatePosition, 250);
+    }
+
+    // Initialize add frame button after data loading
+    if (window.initAddFrameButton) {
+        window.initAddFrameButton();
     }
 });

@@ -20,6 +20,8 @@ class TextEditor {
 		this.currentPage = Number(params.get('pageNum')) || 1;
 		this.exitBtn = document.getElementById('exitBtn');
 		this.currentPageId = params.get('pageId') ? Number(params.get('pageId')) : null;
+		// project id passed so exit can return to the correct project's script
+		this.projectId = params.get('project') || '1';
 
 		// Page storage (simulated in-memory for now)
 		this.dirty = false;
@@ -77,20 +79,21 @@ class TextEditor {
 		if (this.exitBtn) {
 			this.exitBtn.addEventListener('click', async (e) => {
 				e.preventDefault();
+				const target = '/static/script/script.html?project=' + encodeURIComponent(this.projectId || '1');
 				if (!this.dirty) {
-					window.location.href = '/static/script/script.html';
+					window.location.href = target;
 					return;
 				}
 				const save = confirm('Текст изменён. Сохранить перед выходом?');
 				if (save) {
 					const ok = await this.savePage();
-					if (ok) window.location.href = '/static/script/script.html';
+					if (ok) window.location.href = target;
 					else {
 						const exitAnyway = confirm('Сохранение не удалось. Выйти без сохранения?');
-						if (exitAnyway) window.location.href = '/static/script/script.html';
+						if (exitAnyway) window.location.href = target;
 					}
 				} else {
-					window.location.href = '/static/script/script.html';
+					window.location.href = target;
 				}
 			});
 		}

@@ -184,10 +184,40 @@ async def redo_end_time(request: RedoEndTimeRequest):
         )
 
 
+
+
+
+# New: get frame info by frame_id (used by GraphicEditor to determine parent project)
+@router.get("/api/frame/{frame_id}/info")
+async def get_frame_info(frame_id: int):
+    """Возвращает информацию о кадре по его идентификатору"""
+    try:
+        frame_info = frame_model.get_frame_info(frame_id)
+        if not frame_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Кадр не найден"
+            )
+        return frame_info
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
+
+# Original implementation continues below
 @router.post("/api/frame/newFrame", status_code=status.HTTP_201_CREATED, response_model=NewFrameResponse)
 async def new_frame(request: NewFrameRequest):
     """Создание кадра в раскадровке"""
     try:
+        # Debug: log incoming request
+        try:
+            print(f"new_frame called with: {request.dict()}")
+        except Exception:
+            print('new_frame called (could not dump request)')
+
         # Проверяем валидность временных интервалов
         if request.start_time >= request.end_time:
             raise HTTPException(
@@ -229,6 +259,8 @@ async def new_frame(request: NewFrameRequest):
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Внутренняя ошибка сервера: {str(e)}"

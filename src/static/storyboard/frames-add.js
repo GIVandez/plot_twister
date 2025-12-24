@@ -1,6 +1,6 @@
 // frames-add.js — логика добавления новых кадров
 function initAddFrameButton() {
-    const addButton = document.querySelector('.menu-btn'); // Первая кнопка в меню
+    const addButton = document.querySelector('.add-frame-btn'); // Кнопка добавления кадра
     
     async function createNewFrame() {
         const store = window.storyboardStore;

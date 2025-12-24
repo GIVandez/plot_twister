@@ -19,9 +19,6 @@
       <button class="menu-btn undo-btn" title="Отменить (Ctrl+Z)" aria-label="Отменить">⟲</button>
       <button class="menu-btn redo-btn" title="Вернуть (Ctrl+Shift+Z)" aria-label="Вернуть">⟳</button>
 
-      <!-- Кнопка сохранения данных -->
-      <button class="menu-btn save-data-btn" title="Сохранить storyboard-data">Сохранить</button>
-
       <!-- Статистика: обёрнута в контейнер для абсолютного позиционирования -->
       <div class="menu-stats" id="menuStats" aria-hidden="false">
         <!-- Статистика: количество кадров -->
@@ -39,6 +36,8 @@
           <button class="view-tab view-tab-board" role="tab" aria-selected="true">Раскадровка</button>
           <button class="view-tab view-tab-script" role="tab" aria-selected="false">Сценарий</button>
         </div>
+
+        <button class="menu-btn exit-workspace-btn" title="Выйти из рабочего пространства">×</button>
       </div>
     </div>
   </header>
@@ -116,14 +115,30 @@
 
   <!-- ОСНОВНОЙ СКРИПТ -->
   <script>
-    // Переход на локальную страницу сценария по кнопке "Сценарий"
+    // Переход на локальную страницу сценария по кнопке "Сценарий" (с передачей project id)
     document.addEventListener('DOMContentLoaded', function () {
       const scriptTab = document.querySelector('.view-tab.view-tab-script');
+      function _getProjectId() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('project') || window.currentProjectId || '1';
+      }
+
+      // Exit workspace button
+      const exitBtn = document.querySelector('.menu-btn.exit-workspace-btn');
+      if (exitBtn) {
+        exitBtn.addEventListener('click', function(e){
+          e.preventDefault();
+          const pid = _getProjectId();
+          // Absolute URL to ProjectMainPage with projectId parameter
+          window.location.href = 'http://127.0.0.1:8000/project/ProjectMainPage.html?projectId=' + encodeURIComponent(pid);
+        });
+      }
+
       if (scriptTab) {
         scriptTab.addEventListener('click', function (e) {
           e.preventDefault();
-          // полный путь в формате file:///
-          window.location.href = '/static/script/script.html';
+          const pid = _getProjectId();
+          window.location.href = '/static/script/script.html?project=' + encodeURIComponent(pid);
         });
       }
     });

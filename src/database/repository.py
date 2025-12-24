@@ -289,6 +289,7 @@ class DatabaseRepository:
             
             if frame:
                 return {
+                    'project_id': frame.project_id,
                     'description': frame.description,
                     'start_time': frame.start_time,
                     'end_time': frame.end_time,

@@ -924,6 +924,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Изображение сохранено в кадр!');
                     // mark as saved
                     try { markSaved(); } catch(e) {}
+
+                    // Signal to storyboard that this frame image was updated (include project_id when available)
+                    (async () => {
+                        try {
+                            const infoResp = await fetch(`/api/frame/${encodeURIComponent(frameId)}/info`);
+                            if (infoResp && infoResp.ok) {
+                                const info = await infoResp.json();
+                                const ts = Date.now();
+                                const payload = { frame_id: Number(frameId), project_id: info.project_id, ts };
+                                try { localStorage.setItem('frame_updated', JSON.stringify(payload)); } catch(e) { /* ignore */ }
+                                try { window._frameCacheBustTs = ts; } catch(e) { /* ignore */ }
+                            }
+                        } catch(e) { console.warn('Failed to set frame_updated flag', e); }
+                    })();
+
                 } else {
                     alert('Ошибка сохранения');
                 }
@@ -1074,17 +1089,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Exit button behavior and navigation protection
     const exitBtn = document.getElementById('exit');
-    const exitUrl = 'http://127.0.0.1:8000/static/storyboard/index.html';
     if (exitBtn) {
-        exitBtn.addEventListener('click', (ev) => {
+        exitBtn.addEventListener('click', async (ev) => {
             try {
                 if (isDirty) {
                     const ok = confirm('Есть несохранённые изменения. При выходе они будут потеряны. Продолжить?');
                     if (!ok) return;
                 }
-                // navigate to storyboard
-                window.location.href = exitUrl;
-            } catch(e) { window.location.href = exitUrl; }
+                // Try to determine the parent project from the frame and navigate back to the project's storyboard
+                let target = '/storyboard/index.html';
+                let infoProjectId = null;
+                if (frameId) {
+                    try {
+                        const resp = await fetch(`/api/frame/${encodeURIComponent(frameId)}/info`);
+                        if (resp.ok) {
+                            const info = await resp.json();
+                            if (info && info.project_id) {
+                                infoProjectId = info.project_id;
+                                target = `/storyboard/index.html?project=${encodeURIComponent(info.project_id)}`;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Could not fetch frame info for exit navigation', err);
+                    }
+                }
+
+                // If we have a recent saved flag for this frame, append cache-bust parameter so storyboard reloads fresh images
+                try {
+                    const raw = localStorage.getItem('frame_updated');
+                    if (raw) {
+                        const obj = JSON.parse(raw);
+                        if (obj && Number(obj.frame_id) === Number(frameId) && (!infoProjectId || Number(obj.project_id) === Number(infoProjectId))) {
+                            const ts = obj.ts || Date.now();
+                            // Add to query string (preserve existing search)
+                            if (target.includes('?')) target = target + '&_cb=' + encodeURIComponent(ts);
+                            else target = target + '?_cb=' + encodeURIComponent(ts);
+                        }
+                    }
+                } catch(e) { /* ignore */ }
+
+                // If the referrer looks like the storyboard, prefer history.back() so user returns to the exact view
+                if (document.referrer && document.referrer.includes('storyboard')) {
+                    try { window.history.back(); return; } catch(e) { /* ignore */ }
+                }
+
+                window.location.href = target;
+            } catch(e) {
+                console.warn('Exit handler failed', e);
+                window.location.href = '/storyboard/index.html';
+            }
         });
     }
 

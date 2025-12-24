@@ -38,13 +38,27 @@ function showFrameInfo(frameData) {
     // Изображение кадра - растянуто на всю ширину, формат 16:9
     const frameImage = document.createElement('img');
     frameImage.className = 'frame-image-info';
-    frameImage.src = `/api/frame/${frameData.id}/image`;
+    // Append cache-bust param if present
+    (function(){
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const cb = window._frameCacheBustTs || params.get('_cb');
+            frameImage.src = `/api/frame/${frameData.id}/image` + (cb ? ( (`?` + '_cb=' + encodeURIComponent(cb)) ) : '');
+        } catch(e) { frameImage.src = `/api/frame/${frameData.id}/image`; }
+    })();
     frameImage.alt = ''; // Не показываем alt текст
 
     // клик по изображению — переход в GraphicEditor
     frameImage.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frameData.id}`;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const cb = params.get('_cb');
+            const extra = cb ? `&_cb=${encodeURIComponent(cb)}` : '';
+            window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frameData.id}${extra}`;
+        } catch(e) {
+            window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frameData.id}`;
+        }
     });
 
     // Флаг для отслеживания, была ли запущена анимация
@@ -72,7 +86,14 @@ function showFrameInfo(frameData) {
         // клик по fallback тоже ведет в GraphicEditor
         fallbackDiv.addEventListener('click', (ev) => {
             ev.stopPropagation();
-            window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frameData.id}`;
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const cb = params.get('_cb');
+                const extra = cb ? `&_cb=${encodeURIComponent(cb)}` : '';
+                window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frameData.id}${extra}`;
+            } catch(e) {
+                window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frameData.id}`;
+            }
         });
 
         frameInfoDisplay.insertBefore(fallbackDiv, frameInfoDisplay.firstChild);

@@ -12,6 +12,37 @@
       const pid = qs.get('projectId');
       if(!pid) return;
       PROJECT_ID = pid;
+
+      // Verify ownership: ensure current user owns this project
+      (async function verifyOwnership(){
+        try{
+          const login = sessionStorage.getItem('pt_login') || localStorage.getItem('pt_login');
+          if(!login){
+            // If no login found, redirect to auth
+            window.location.href = 'http://127.0.0.1:8000/auth/login.html';
+            return;
+          }
+          const resp = await fetch(`/api/users/${encodeURIComponent(login)}/loadInfo`);
+          if(!resp.ok){
+            // If request failed or returns 204 (no projects) deny access
+            alert('У вас нет доступа к этому проекту.');
+            window.location.href = 'http://127.0.0.1:8000/user';
+            return;
+          }
+          const data = await resp.json();
+          const exists = Array.isArray(data.projects) && data.projects.some(p => Number(p.project_id) === Number(pid));
+          if(!exists){
+            alert('У вас нет доступа к этому проекту.');
+            window.location.href = 'http://127.0.0.1:8000/user';
+            return;
+          }
+        }catch(e){
+          console.warn('verifyOwnership failed', e);
+          alert('Не удалось проверить доступ к проекту.');
+          window.location.href = 'http://127.0.0.1:8000/user';
+        }
+      })();
+
       const projs = JSON.parse(localStorage.getItem('pt_projects')||'[]');
       const p = projs.find(x=>x.id===pid);
       if(p && titleInput) { titleInput.value = p.name || titleInput.value; document.title = (p.name||'Проект') + ' — PlotTwister'; }
@@ -45,8 +76,23 @@
     }catch(e){ /* ignore malformed localStorage */ }
   })();
 
-  // go back to account
-  if(backBtn){ backBtn.addEventListener('click', ()=>{ window.location.href = 'Account.html'; }); }
+  // go back to account (redirect to user account or login)
+  if(backBtn){
+    backBtn.addEventListener('click', ()=>{
+      try {
+        const login = sessionStorage.getItem('pt_login') || localStorage.getItem('pt_login');
+        if (login) {
+          // Navigate to the account page for the current user (server will read session/token)
+          window.location.href = 'http://127.0.0.1:8000/user';
+        } else {
+          // If no login found in storage, go to login page
+          window.location.href = 'http://127.0.0.1:8000/auth/login.html';
+        }
+      } catch(e) {
+        window.location.href = 'http://127.0.0.1:8000/user';
+      }
+    });
+  }
 
   // Single click handler: create icon on plus click, or delete on trash click
   center.addEventListener('click', (e) => {
@@ -85,7 +131,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: Number(PROJECT_ID), start_time: 0, end_time: 1, description: '' })
       }).then(resp => {
-        if(!resp.ok) return resp.json().then(j=>{ throw new Error(j.detail || 'Ошибка создания кадра'); });
+        if (!resp.ok) {
+          const ct = resp.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            return resp.json().then(j => { throw new Error(j.detail || 'Ошибка создания кадра'); });
+          } else {
+            return resp.text().then(t => { throw new Error(t || 'Ошибка создания кадра'); });
+          }
+        }
         return resp.json();
       }).then(data => {
         // mark tile as created
@@ -100,7 +153,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: Number(PROJECT_ID) })
       }).then(resp => {
-        if(!resp.ok) return resp.json().then(j=>{ throw new Error(j.detail || 'Ошибка создания страницы'); });
+        if (!resp.ok) {
+          const ct = resp.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            return resp.json().then(j => { throw new Error(j.detail || 'Ошибка создания страницы'); });
+          } else {
+            return resp.text().then(t => { throw new Error(t || 'Ошибка создания страницы'); });
+          }
+        }
         return resp.json();
       }).then(data => {
         createScript(tile, /*persist*/ true);
