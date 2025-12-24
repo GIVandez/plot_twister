@@ -4,7 +4,6 @@ from sqlalchemy.orm import relationship
 
 # Создаем базовый класс для моделей
 Base = declarative_base()
-# Base.metadata.create_all(base.engine)  # Создаем таблицы если их нет !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # Модели таблиц
 class User(Base):
