@@ -482,4 +482,6 @@ async def batch_update_times(request: BatchUpdateTimesRequest):
 
 @router.get("/frame_test")
 async def load_start_page():
-    return FileResponse(path="static/storyboard/api_test.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "storyboard", "api_test.html")
+    return FileResponse(path=file_path)

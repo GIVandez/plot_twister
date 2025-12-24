@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from dto.auth_dto import LoginRequest, LoginResponse, RegisterRequest, LogoutRequest
 from user_models.auth_model import AuthModel
+import os
 
 router = APIRouter()
 auth_model = AuthModel()
@@ -69,12 +70,16 @@ async def logout(request: LogoutRequest):
 
 @router.get("/auth_test")
 async def load_start_page():
-    return FileResponse(path="static/auth/api_test.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "auth", "api_test.html")
+    return FileResponse(path=file_path)
 
 
 # TODO: API?
 
 @router.get("/login")
 async def load_start_page():
-    return FileResponse(path="static/auth/login.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "auth", "login.html")
+    return FileResponse(path=file_path)
 

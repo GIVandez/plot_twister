@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: plot_twister_db
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: plot_twister
+    ports:
+    # Changed Postgres port from 5432 to 5433 to avoid conflicts with local installations
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d plot_twister"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plot_twister_network
+
+  # FastAPI Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: plot_twister_web
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://root:root@db:5432/plot_twister
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./src:/app/src
+      - ./src/uploads:/app/src/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - plot_twister_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  plot_twister_network:
+    driver: bridge

@@ -145,4 +145,7 @@ async def load_image(pic_path: str):
 
 @router.get("/graphic-editor")
 async def load_start_page():
-    return FileResponse(path="static/graphiceditor/GraphicEditor.html")
+    # Используем абсолютный путь относительно текущего файла
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "graphiceditor", "GraphicEditor.html")
+    return FileResponse(path=file_path)
