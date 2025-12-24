@@ -5,9 +5,9 @@ import os
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     # ILYA
-    #"postgresql://root:root@localhost:5432/plot_twister"
+    "postgresql://root:root@localhost:5432/plot_twister"
     # VANYA
-    "postgresql://aaa:aaa@localhost:5432/plot_twister"
+    #"postgresql://aaa:aaa@localhost:5432/plot_twister"
 )
 
 engine = db.create_engine(DATABASE_URL)

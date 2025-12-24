@@ -502,16 +502,46 @@ async def get_frame_image(frame_id: int):
         
         # Возвращаем файл
         file_path = frame_info['pic_path']
+        # Попробуем несколько вариантов местоположения файла:
+        # 1) как указано в базе (может быть абсолютный или относительный путь)
+        # 2) внутри папки static (src/static/...) — если pic_path начинается с /uploads/ или uploads/
+        # 3) в корневой папке uploads/ проекта
+        candidates = []
+        if not file_path:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Изображение не найдено"
+            )
+        # Оригинальный путь
+        candidates.append(file_path)
+        # Если путь со слешем в начале, убираем его и пробуем
         if file_path.startswith('/'):
-            file_path = file_path[1:]  # Убираем ведущий слэш
-        
-        if not os.path.exists(file_path):
+            candidates.append(file_path[1:])
+        # Пути относительно папки static
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        static_candidate = os.path.join(current_dir, 'static', file_path.lstrip('/'))
+        candidates.append(static_candidate)
+        # uploads в корне проекта
+        candidates.append(os.path.join(current_dir, '..', file_path.lstrip('/')))
+        candidates.append(os.path.join(current_dir, file_path.lstrip('/')))
+
+        # Проверяем каждый кандидат
+        found = None
+        for p in candidates:
+            if p and os.path.exists(p):
+                found = p
+                break
+
+        if not found:
+            # Логируем проверённые пути для дебага
+            print(f"Frame image not found. Checked: {candidates}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Файл изображения не найден"
             )
-        
-        return FileResponse(path=file_path, media_type='image/jpeg')
+
+        # Возвращаем найденный файл
+        return FileResponse(path=found, media_type='image/jpeg')
     except HTTPException:
         raise
     except Exception as e:

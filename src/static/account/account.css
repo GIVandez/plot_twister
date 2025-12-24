@@ -11,14 +11,23 @@ body{
     background:var(--bg);
     color:var(--text);
     margin:0;
-    padding:28px
+    padding:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
 }
 .account-container{
-    margin:0 4%;
+    margin:0;
+    width: min(1400px, 98vw);
+    max-height: calc(100vh - 48px);
     background:linear-gradient(180deg,#f3f3f3,#e8e8e8);
     border-radius:12px;
     padding:22px;
-    min-height:80vh
+    display:flex;
+    flex-direction:column;
+    overflow:visible;
 }
 .acct-header{
     display:flex;
@@ -79,7 +88,16 @@ body{
     /* Ограничиваем высоту области проектов и делаем её прокручиваемой */
     max-height: calc(100vh - 220px);
     overflow: auto;
-    padding-right: 10px; /* место для скролла */
+    /* Скрытый, но рабочий скроллбар */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    padding-right: 0px;
+}
+
+/* Webkit browsers: скрываем полосу прокрутки, но оставляем прокрутку доступной */
+.projects-area::-webkit-scrollbar{ width: 0; height: 0; }
+.projects-area::-webkit-scrollbar-thumb{ background: transparent; }
+.projects-area::-webkit-scrollbar-track{ background: transparent; }
 }
 .projects-header{
     display:flex;

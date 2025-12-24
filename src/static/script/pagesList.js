@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
         pageNumbers.forEach((pn, idx) => pageIndexMap[pn] = idx);
     }
 
+    // Ensure currentProjectId is initialized from URL query if not set
+    if (!window.currentProjectId) {
+        const params = new URLSearchParams(window.location.search || window.location.hash.replace(/^\?/, ''));
+        const pid = params.get('project') || params.get('projectId');
+        if (pid) window.currentProjectId = pid;
+    }
+
     // Helper: load pages from API and initialize local structures
     async function loadPagesFromApi() {
         const projectId = window.currentProjectId || 1;
