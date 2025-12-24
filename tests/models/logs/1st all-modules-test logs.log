@@ -1,0 +1,243 @@
+======================= test session starts ========================
+platform win32 -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0 -- D:\Code\five\plot_twister\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\Code\five\plot_twister
+configfile: pyproject.toml
+plugins: anyio-4.12.0, mock-3.15.1
+collected 54 items
+
+tests/test_project_model.py::TestProjectModel::test_new_project_success FAILED [  1%]
+tests/test_project_model.py::TestProjectModel::test_new_project_already_exists PASSED [  3%]
+tests/test_project_model.py::TestProjectModel::test_new_project_user_not_found PASSED [  5%]
+tests/test_project_model.py::TestProjectModel::test_edit_project_name_success PASSED [  7%]
+tests/test_project_model.py::TestProjectModel::test_edit_project_name_failure PASSED [  9%]
+tests/test_project_model.py::TestProjectModel::test_delete_project_success PASSED [ 11%]
+tests/test_project_model.py::TestProjectModel::test_delete_project_failure PASSED [ 12%]
+tests/test_project_model.py::TestProjectModel::test_delete_script_success PASSED [ 14%]
+tests/test_project_model.py::TestProjectModel::test_delete_script_no_pages PASSED [ 16%]
+tests/test_project_model.py::TestProjectModel::test_delete_frames_success PASSED [ 18%]
+tests/test_project_model.py::TestProjectModel::test_connect_fp_success PASSED [ 20%]
+tests/test_project_model.py::TestProjectModel::test_connect_fp_frame_not_found PASSED [ 22%]
+tests/test_project_model.py::TestProjectModel::test_disconnect_fp_success PASSED [ 24%]
+tests/test_page_model.py::TestPageModel::test_new_page_with_number_and_text PASSED [ 25%]
+tests/test_page_model.py::TestPageModel::test_new_page_auto_number PASSED [ 27%]
+tests/test_page_model.py::TestPageModel::test_new_page_project_not_found PASSED [ 29%]
+tests/test_page_model.py::TestPageModel::test_get_page_success PASSED [ 31%]
+tests/test_page_model.py::TestPageModel::test_get_page_not_found PASSED [ 33%]
+tests/test_page_model.py::TestPageModel::test_edit_page_text_only PASSED [ 35%]
+tests/test_page_model.py::TestPageModel::test_edit_page_number_onlyP 
+ASSED [ 37%]
+tests/test_page_model.py::TestPageModel::test_edit_page_text_and_number PASSED [ 38%]
+tests/test_page_model.py::TestPageModel::test_edit_page_failure PASSED [ 40%]
+tests/test_page_model.py::TestPageModel::test_delete_page_success PASSED [ 42%]
+tests/test_page_model.py::TestPageModel::test_delete_page_not_foundP 
+ASSED [ 44%]
+tests/test_frame_model.py::TestFrameModel::test_new_frame_with_all_data FAILED [ 46%]
+tests/test_frame_model.py::TestFrameModel::test_new_frame_auto_number FAILED [ 48%]
+tests/test_frame_model.py::TestFrameModel::test_new_frame_missing_required_data PASSED [ 50%]
+tests/test_frame_model.py::TestFrameModel::test_new_frame_project_not_found PASSED [ 51%]
+tests/test_frame_model.py::TestFrameModel::test_get_frame_info_success PASSED [ 53%]
+tests/test_frame_model.py::TestFrameModel::test_get_frame_info_not_found PASSED [ 55%]
+tests/test_frame_model.py::TestFrameModel::test_edit_frame_info_success PASSED [ 57%]
+tests/test_frame_model.py::TestFrameModel::test_edit_frame_info_failure PASSED [ 59%]
+tests/test_frame_model.py::TestFrameModel::test_update_frame_number_success PASSED [ 61%]
+tests/test_frame_model.py::TestFrameModel::test_delete_frame_success 
+PASSED [ 62%]
+tests/test_frame_model.py::TestFrameModel::test_delete_frame_not_found PASSED [ 64%]
+tests/test_frame_model.py::TestFrameModel::test_get_project_frames_success PASSED [ 66%]
+tests/test_frame_model.py::TestFrameModel::test_get_project_frames_project_not_found PASSED [ 68%]
+tests/test_frame_model.py::TestFrameModel::test_get_frame_pic_exists 
+PASSED [ 70%]
+tests/test_frame_model.py::TestFrameModel::test_get_frame_pic_not_exists PASSED [ 72%]
+tests/test_frame_model.py::TestFrameModel::test_upload_frame_pic_from_file_object FAILED [ 74%]
+tests/test_frame_model.py::TestFrameModel::test_upload_frame_pic_from_bytes FAILED [ 75%]
+tests/test_frame_model.py::TestFrameModel::test_delete_frame_pic_exists PASSED [ 77%]
+tests/test_frame_model.py::TestFrameModel::test_delete_frame_pic_not_exists PASSED [ 79%]
+tests/test_frame_model.py::TestFrameModel::test_delete_frame_pic_frame_not_found PASSED [ 81%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_get_pic_exists PASSED [ 83%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_get_pic_file_not_exists PASSED [ 85%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_get_pic_frame_not_found PASSED [ 87%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_get_pic_no_pic_path PASSED [ 88%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_upload_pic_from_file_object PASSED [ 90%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_upload_pic_from_bytes PASSED [ 92%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_upload_pic_from_file_path PASSED [ 94%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_upload_pic_source_not_exists PASSED [ 96%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_upload_pic_db_update_failure PASSED [ 98%]
+tests/test_graphic_editor_model.py::TestGraphicEditorModel::test_upload_pic_exception_handling PASSED [100%]
+
+============================= FAILURES ============================= 
+____________ TestProjectModel.test_new_project_success _____________ 
+
+self = <test_project_model.TestProjectModel object at 0x0000019E84C1C2D0>
+project_model = <project_data_models.project_model.ProjectModel object at 0x0000019E836B3B10>
+
+    def test_new_project_success(self, project_model):
+        """Тест: Успешное создание нового проекта"""
+        # Arrange
+        username = "test_user"
+        project_name = "New Project"
+        mock_session = Mock()
+
+        project_model.db.user_project_exist.return_value = False     
+        project_model.db.get_user_id_by_login.return_value = 1       
+        project_model.Session.return_value = mock_session
+
+        mock_project = Mock()
+        mock_project.id = 42
+        mock_session.query.return_value.filter.return_value.first.return_value = Mock()  # owner exists
+        mock_session.refresh = Mock()
+        mock_session.add = Mock()
+        mock_session.commit = Mock()
+
+>       with patch('project_data_models.project_model.Project', return_value=mock_project):
+
+tests\test_project_model.py:46:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  
+C:\Users\gavki\AppData\Roaming\uv\python\cpython-3.11.14-windows-x86_64-none\Lib\unittest\mock.py:1446: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  
+
+self = <unittest.mock._patch object at 0x0000019E836B3F50>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):     
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name) 
+            )
+E           AttributeError: <module 'project_data_models.project_model' from 'D:\\Code\\five\\plot_twister\\tests\\..\\src\\project_data_models\\project_model.py'> does not have the attribute 'Project'      
+
+C:\Users\gavki\AppData\Roaming\uv\python\cpython-3.11.14-windows-x86_64-none\Lib\unittest\mock.py:1419: AttributeError
+___________ TestFrameModel.test_new_frame_with_all_data ____________ 
+
+self = <test_frame_model.TestFrameModel object at 0x0000019E85CEF910>frame_model = <project_data_models.frame_model.FrameModel object at 0x0000019E84C58190>
+
+    def test_new_frame_with_all_data(self, frame_model):
+        """Тест: Создание нового кадра со всеми данными"""
+        # Arrange
+        username = "test_user"
+        new_frame_data = {
+            'project_id': 1,
+            'start_time': 0,
+            'end_time': 100,
+            'pic_path': '/path/to/image.png',
+            'description': 'Test frame',
+            'number': 5
+        }
+        mock_session = Mock()
+        mock_frame = Mock()
+        mock_frame.id = 50
+
+        frame_model.Session.return_value = mock_session
+        mock_session.query.return_value.filter.return_value.first.return_value = Mock()  # project exists
+
+        with patch('project_data_models.frame_model.Frame', return_value=mock_frame):
+            # Act
+            result = frame_model.new_frame(username, new_frame_data) 
+
+            # Assert
+>           assert result == 50
+E           assert None == 50
+
+tests\test_frame_model.py:52: AssertionError
+____________ TestFrameModel.test_new_frame_auto_number _____________ 
+
+self = <test_frame_model.TestFrameModel object at 0x0000019E85CEFD10>frame_model = <project_data_models.frame_model.FrameModel object at 0x0000019E85C63190>
+
+    def test_new_frame_auto_number(self, frame_model):
+        """Тест: Создание кадра с автоматическим номером"""
+        # Arrange
+        username = "test_user"
+        new_frame_data = {
+            'project_id': 1,
+            'start_time': 0,
+            'end_time': 50
+        }
+        mock_session = Mock()
+        mock_frame = Mock()
+        mock_frame.id = 51
+
+        frame_model.Session.return_value = mock_session
+        mock_session.query.return_value.filter.return_value.first.return_value = Mock()  # project exists
+        mock_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = (2,)  # max number is 2
+
+        with patch('project_data_models.frame_model.Frame', return_value=mock_frame):
+            # Act
+            result = frame_model.new_frame(username, new_frame_data) 
+
+            # Assert
+>           assert result == 51
+E           assert None == 51
+
+tests\test_frame_model.py:78: AssertionError
+______ TestFrameModel.test_upload_frame_pic_from_file_object _______
+
+self = <test_frame_model.TestFrameModel object at 0x0000019E85CDCFD0>frame_model = <project_data_models.frame_model.FrameModel object at 0x0000019E85C91D10>
+
+    def test_upload_frame_pic_from_file_object(self, frame_model):   
+        """Тест: Загрузка изображения из файлового объекта"""        
+        # Arrange
+        frame_id = 1
+        frame_path = '/uploads/frame1.png'
+        mock_file = Mock()
+        mock_file.read.return_value = b'image data'
+        frame_model.db.update_frame_info.return_value = True
+
+        with patch('builtins.open', Mock()):
+            # Act
+            result = frame_model.upload_frame_pic(frame_id, frame_path, mock_file)
+
+            # Assert
+>           assert result is True
+E           assert False is True
+
+tests\test_frame_model.py:344: AssertionError
+----------------------- Captured stdout call ----------------------- 
+Error uploading frame picture: 'Mock' object does not support the context manager protocol
+_________ TestFrameModel.test_upload_frame_pic_from_bytes __________ 
+
+self = <test_frame_model.TestFrameModel object at 0x0000019E85CEE590>frame_model = <project_data_models.frame_model.FrameModel object at 0x0000019E85C91F10>
+
+    def test_upload_frame_pic_from_bytes(self, frame_model):
+        """Тест: Загрузка изображения из байтов"""
+        # Arrange
+        frame_id = 1
+        frame_path = '/uploads/frame1.png'
+        frame_pic = b'image data bytes'
+        frame_model.db.update_frame_info.return_value = True
+
+        with patch('builtins.open', Mock()):
+            # Act
+            result = frame_model.upload_frame_pic(frame_id, frame_path, frame_pic)
+
+            # Assert
+>           assert result is True
+E           assert False is True
+on is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+===================== short test summary info ======================
+FAILED tests/test_project_model.py::TestProjectModel::test_new_project_success - AttributeError: <module 'project_data_models.project_model' from...
+FAILED tests/test_frame_model.py::TestFrameModel::test_new_frame_with_all_data - assert 
+None == 50
+FAILED tests/test_frame_model.py::TestFrameModel::test_new_frame_auto_number - assert None == 51
+FAILED tests/test_frame_model.py::TestFrameModel::test_upload_frame_pic_from_file_object - assert False is True
+FAILED tests/test_frame_model.py::TestFrameModel::test_upload_frame_pic_from_bytes - assert False is True
+============= 5 failed, 49 passed, 1 warning in 2.21s ==============

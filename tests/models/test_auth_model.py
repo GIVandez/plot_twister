@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import Mock, patch
 
 # Добавляем путь к src в PYTHONPATH
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from user_models.auth_model import AuthModel
 
