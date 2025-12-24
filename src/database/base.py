@@ -1,10 +1,16 @@
 import sqlalchemy as db
+import os
 
-# РАССКОМЕНИТИТЬ НУЖНОЕ
-# ВАНЯ
-#engine = db.create_engine("postgresql://aaa:aaa@localhost:5432/plot_twister")
-# ИЛЬЯ
-engine = db.create_engine("postgresql://root:root@localhost:5432/plot_twister")
+# Get database URL from environment variable or use default
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    # ILYA
+    #"postgresql://root:root@localhost:5432/plot_twister"
+    # VANYA
+    "postgresql://aaa:aaa@localhost:5432/plot_twister"
+)
+
+engine = db.create_engine(DATABASE_URL)
 
 #conn = engine.connect()
 # metadata = db.MetaData() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

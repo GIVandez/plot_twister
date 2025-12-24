@@ -8,6 +8,7 @@ from dto.project_dto import (
     ConnectFramePageRequest, DisconnectFramePageRequest
 )
 from project_data_models.project_model import ProjectModel
+import os
 from database.repository import DatabaseRepository
 from typing import List
 
@@ -383,11 +384,15 @@ async def disconnect_frame_page(request: DisconnectFramePageRequest):
 
 @router.get("/project_test")
 async def load_start_page():
-    return FileResponse(path="static/project/api_test.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "project", "api_test.html")
+    return FileResponse(path=file_path)
 
 
 # TODO: API?
 
 @router.get("/project")
 async def load_start_page():
-    return FileResponse(path="static/project/ProjectMainPage.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "project", "ProjectMainPage.html")
+    return FileResponse(path=file_path)

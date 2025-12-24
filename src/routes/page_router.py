@@ -7,6 +7,7 @@ from dto.page_dto import (
 from project_data_models.page_model import PageModel
 from database.repository import DatabaseRepository
 from typing import Dict
+import os
 
 router = APIRouter()
 page_model = PageModel()
@@ -177,18 +178,24 @@ async def load_page(page_id: int):
 
 @router.get("/page_test")
 async def load_start_page():
-    return FileResponse(path="static/script/api_test.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "script", "api_test.html")
+    return FileResponse(path=file_path)
 
 
 
 @router.get("/script")
 async def load_start_page():
-    return FileResponse(path="static/script/script.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "script", "script.html")
+    return FileResponse(path=file_path)
 
 
 @router.get("/storyboard")
 async def load_start_page():
-    return FileResponse(path="static/storyboard/index.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "storyboard", "index.html")
+    return FileResponse(path=file_path)
 
 
 
@@ -196,4 +203,6 @@ async def load_start_page():
 
 @router.get("/text-editor")
 async def load_start_page():
-    return FileResponse(path="static/script/script_redo/TextEditor.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "script", "script_redo", "TextEditor.html")
+    return FileResponse(path=file_path)

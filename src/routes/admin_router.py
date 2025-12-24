@@ -10,6 +10,7 @@ from database.repository import DatabaseRepository
 from database.base import engine
 from database.models import User
 from sqlalchemy.orm import sessionmaker
+import os
 
 router = APIRouter()
 admin_model = AdminModel()
@@ -195,11 +196,15 @@ async def upgrade_account(request: UpgradeAccountRequest):
 
 @router.get("/admin_test")
 async def load_start_page():
-    return FileResponse(path="static/admin/api_test.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "admin", "api_test.html")
+    return FileResponse(path=file_path)
 
 
 # TODO: API?
 
 @router.get("/admin")
 async def load_start_page():
-    return FileResponse(path="static/account/admin.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "account", "admin.html")
+    return FileResponse(path=file_path)

@@ -7,6 +7,7 @@ from dto.user_dto import (
 from user_models.user_model import UserModel
 from project_data_models.project_model import ProjectModel
 from database.repository import DatabaseRepository
+import os
 
 router = APIRouter()
 user_model = UserModel()
@@ -201,11 +202,15 @@ async def delete_project(request: DeleteProjectRequest):
 
 @router.get("/user_test")
 async def load_start_page():
-    return FileResponse(path="static/account/api_test.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "account", "api_test.html")
+    return FileResponse(path=file_path)
 
 
 # TODO: API?
 
 @router.get("/user")
 async def load_start_page():
-    return FileResponse(path="static/account/account.html")
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "account", "account.html")
+    return FileResponse(path=file_path)
