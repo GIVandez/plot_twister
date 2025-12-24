@@ -1,10 +1,44 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <title></title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>PlotTwister — Главная</title>
+	<link rel="stylesheet" href="/static/index.css">
 </head>
 <body>
-<p>hi</p>
+	<main class="hero">
+		<section class="intro">
+			<h1 class="title">PlotTwister</h1>
+			<p class="lead">Инструмент для создания раскадровок и сценариев — от идеи до связанного визуального рассказа.</p>
+
+			<ul class="features">
+				<li><strong>Создание раскадровки:</strong> быстрый старт с последовательностями кадров.</li>
+				<li><strong>Рисование кадров и загрузка изображений:</strong> рисуйте прямо в приложении или добавляйте свои файлы.</li>
+				<li class="highlight"><strong>Связка кадров со страницами сценария:</strong> связывайте сцены и конкретные кадры — уникальная возможность PlotTwister, которая упрощает работу над визуальной структурой сценария и делает навигацию между сценарием и раскадровкой мгновенной.</li>
+			</ul>
+		</section>
+
+		<aside class="auth-card" aria-labelledby="auth-title">
+			<h2 id="auth-title">Доступ к функционалу</h2>
+
+			<div class="actions">
+			<a class="btn btn-primary invite" href="/auth/login.html">Войти</a>
+			<a class="btn btn-secondary invite" href="/auth/register.html">Зарегистрироваться</a>
+			</div>
+		</aside>
+	</main>
+
+	<section class="gifs-section">
+		<h3>Примеры функций</h3>
+		<p class="gifs-note">Здесь будут гифки с примерами: рисование кадров, загрузка изображений, привязка кадров к сценарию.</p>
+
+		<div class="gifs">
+			<div class="gif-placeholder" aria-hidden="true">GIF 1</div>
+			<div class="gif-placeholder" aria-hidden="true">GIF 2</div>
+			<div class="gif-placeholder" aria-hidden="true">GIF 3</div>
+		</div>
+	</section>
+
 </body>
 </html>
