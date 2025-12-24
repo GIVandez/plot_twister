@@ -10,18 +10,18 @@ class PagesManager {
         this.hidePage();
     }
 
-    // Показать страницу по номеру из connectedPage
-    showPage(pageNumber) {
-        // Находим страницу по номеру
+    // Показать страницу по ID из connectedPage
+    showPage(pageId) {
+        // Находим страницу по ID
         const store = window.storyboardStore;
-        const pageText = store ? store.getPageText(pageNumber) : null;
+        const pageText = store ? store.getPageTextById(pageId) : null;
         
         if (pageText) {
             this.loadPageContent(pageText);
             this.showPageSection();
         } else {
             // Если страница не найдена, показываем сообщение
-            this.showNotFoundPage(pageNumber);
+            this.showNotFoundPage(pageId);
         }
     }
 
@@ -41,19 +41,19 @@ class PagesManager {
         const pageContent = document.getElementById('pageContent');
         
         if (pageText) {
-            // Убираем ведущие пробелы/переводы строк и загружаем текст страницы
-            pageContent.textContent = String(pageText).replace(/^[\r\n\s]+/, '');
+            // Убираем ведущие пробелы/переводы строк и загружаем текст страницы с поддержкой HTML
+            pageContent.innerHTML = String(pageText).replace(/^[\r\n\s]+/, '');
             
             // Прокручиваем к началу страницы
             document.getElementById('pageDisplay').scrollTop = 0;
         }
     }
 
-    showNotFoundPage(pageNumber) {
+    showNotFoundPage(pageId) {
         const pageContent = document.getElementById('pageContent');
         const store = window.storyboardStore;
         const available = store ? store.getPageNumbers().join(', ') : '';
-        pageContent.textContent = `Страница с номером ${pageNumber} не найдена.\n\nДоступные страницы: ${available}`;
+        pageContent.innerHTML = `Страница с ID ${pageId} не найдена.\n\nДоступные страницы: ${available}`;
         this.showPageSection();
     }
 }
@@ -62,8 +62,8 @@ class PagesManager {
 window.pagesManager = new PagesManager();
 
 // Функция для открытия страницы из кнопки кадра
-window.openConnectedPage = function(pageNumber) {
+window.openConnectedPage = function(pageId) {
     if (window.pagesManager) {
-        window.pagesManager.showPage(pageNumber);
+        window.pagesManager.showPage(pageId);
     }
 };

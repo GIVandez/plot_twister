@@ -409,3 +409,29 @@ class FrameModel:
         
         # Если файла нет, считаем операцию успешной
         return True
+    
+    def update_frame_image_path(self, frame_id: int, pic_path: str) -> bool:
+        """
+        Обновление пути к изображению кадра
+        
+        Args:
+            frame_id: ID кадра
+            pic_path: новый путь к изображению
+        
+        Returns:
+            bool: True если обновлено успешно
+        """
+        session = self.Session()
+        try:
+            frame = session.query(Frame).filter(Frame.id == frame_id).first()
+            if not frame:
+                return False
+            frame.pic_path = pic_path
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            print(f"Error updating frame image path: {e}")
+            return False
+        finally:
+            session.close()

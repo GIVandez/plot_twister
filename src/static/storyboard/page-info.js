@@ -29,22 +29,22 @@ class ScriptPagesManager {
         }
     }
 
-    // Показать страницу по номеру
-    showPage(pageNumber, frameIndex) {
+    // Показать страницу по ID
+    showPage(pageId, frameIndex) {
         this.currentFrameIndex = frameIndex;
         
-        // Сначала скрываем информацию о кадре
-        hideFrameInfo();
+        // Сначала скрываем информацию о кадре (если функция доступна)
+        if (typeof window.hideFrameInfo === 'function') window.hideFrameInfo();
         
-        // Находим страницу по номеру
+        // Находим страницу по ID
         const store = window.storyboardStore;
-        const pageText = store ? store.getPageText(pageNumber) : null;
+        const pageText = store ? store.getPageTextById(pageId) : null;
         
         if (pageText) {
             this.loadPageContent(pageText);
             this.showPageSection();
         } else {
-            this.showNotFoundPage(pageNumber, frameIndex);
+            this.showNotFoundPage(pageId, frameIndex);
         }
     }
 
@@ -93,20 +93,20 @@ class ScriptPagesManager {
         const pageContent = document.getElementById('pageContent');
         
         if (pageText) {
-            // Убираем ведущие пробелы/переводы строк и загружаем текст страницы
-            pageContent.textContent = String(pageText).replace(/^[\r\n\s]+/, '');
+            // Убираем ведущие пробелы/переводы строк и загружаем текст страницы с поддержкой HTML
+            pageContent.innerHTML = String(pageText).replace(/^[\r\n\s]+/, '');
             
             // Прокручиваем к началу страницы
             pageContent.scrollTop = 0;
         }
     }
 
-    showNotFoundPage(pageNumber, frameIndex) {
+    showNotFoundPage(pageId, frameIndex) {
         const pageContent = document.getElementById('pageContent');
         
         const store = window.storyboardStore;
         const available = store ? store.getPageNumbers().join(', ') : '';
-        pageContent.textContent = `Страница с номером ${pageNumber} не найдена.\n\nДоступные страницы: ${available}`;
+        pageContent.innerHTML = `Страница с ID ${pageId} не найдена.\n\nДоступные страницы: ${available}`;
         this.showPageSection();
     }
     
@@ -165,9 +165,9 @@ class ScriptPagesManager {
 window.scriptPagesManager = new ScriptPagesManager();
 
 // Функция для открытия страницы из кнопки кадра
-window.openScriptPage = function(pageNumber, frameIndex) {
+window.openScriptPage = function(pageId, frameIndex) {
     if (window.scriptPagesManager) {
-        window.scriptPagesManager.showPage(pageNumber, frameIndex);
+        window.scriptPagesManager.showPage(pageId, frameIndex);
     }
 };
 

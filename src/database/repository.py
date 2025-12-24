@@ -481,12 +481,34 @@ class DatabaseRepository:
         session = self.Session()
         try:
             page = session.query(Page).filter(Page.id == page_id).first()
-            
+
             if not page:
                 return False
-            
+
+            # Remember project and number to renumber subsequent pages
+            project_id = page.project_id
+            deleted_number = page.number
+
+            # Delete the page
             session.delete(page)
             session.commit()
+
+            # Decrement numbers of pages in the same project with number > deleted_number
+            try:
+                pages_to_update = session.query(Page).filter(
+                    Page.project_id == project_id,
+                    Page.number > deleted_number
+                ).order_by(Page.number.asc()).all()
+
+                for p in pages_to_update:
+                    p.number = p.number - 1
+
+                if pages_to_update:
+                    session.commit()
+            except Exception:
+                # If renumbering fails, rollback but don't re-create the deleted page
+                session.rollback()
+
             return True
             
         except Exception as e:

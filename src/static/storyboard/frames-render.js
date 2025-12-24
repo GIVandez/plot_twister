@@ -153,8 +153,8 @@ async function editDescription(index, descDiv) {
         const infoSection = document.querySelector('.info-section');
         const existingInfo = infoSection ? infoSection.querySelector('.frame-info-display') : null;
         if (!existingInfo || existingInfo.dataset.frameId !== frameData.id) {
-            hideScriptPage();
-            showFrameInfo(frameData);
+            if (typeof window.hideScriptPage === 'function') window.hideScriptPage();
+            window.showFrameInfo(frameData);
         }
     }
 
@@ -364,11 +364,11 @@ function renderFrames() {
     
     container.innerHTML = '';
 
-    const store = window.storyboardStore;
-    const ids = store ? store.getFrameIds() : [];
+    const sbStore = window.storyboardStore;
+    const ids = sbStore ? sbStore.getFrameIds() : [];
 
     ids.forEach((id, index) => {
-        const frame = store.getFrameById(id);
+        const frame = sbStore.getFrameById(id);
         if (!frame) return;
          const frameDiv = document.createElement('div');
          frameDiv.className = 'frame';
@@ -377,7 +377,21 @@ function renderFrames() {
 
         const imgDiv = document.createElement('div');
         imgDiv.className = 'frame-image';
-        imgDiv.textContent = frame.image;
+        // If frame has an image stored (pic_path), insert an <img> that loads it from the API
+        if (frame.image) {
+            const thumb = document.createElement('img');
+            thumb.className = 'frame-thumb';
+            thumb.src = `/api/frame/${frame.id}/image`;
+            thumb.alt = '';
+            thumb.style.width = '100%';
+            thumb.style.height = '100%';
+            thumb.style.objectFit = 'fill';
+            thumb.style.borderRadius = '6px';
+            // on error, remove image to show default blank background
+            thumb.onerror = () => { try { thumb.remove(); } catch(e){} };
+            imgDiv.appendChild(thumb);
+        }
+        // Не показываем текст пути - просто белый фон
 
         const descDiv = document.createElement('div');
         descDiv.className = 'frame-description';
@@ -427,8 +441,8 @@ function renderFrames() {
         timeStartEdit.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
-                const store = window.storyboardStore;
-                const frameNow = store ? store.getFrameByIndex(index) : null;
+                const sbStore = window.storyboardStore;
+                const frameNow = sbStore ? sbStore.getFrameByIndex(index) : null;
                 timeStartEdit.style.display = 'none';
                 timeStartDiv.style.display = 'flex';
                 timeStartEdit.value = formatTime(frameNow ? frameNow.start : frame.start);
@@ -462,8 +476,8 @@ function renderFrames() {
         timeEndEdit.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
-                const store = window.storyboardStore;
-                const frameNow = store ? store.getFrameByIndex(index) : null;
+                const sbStore = window.storyboardStore;
+                const frameNow = sbStore ? sbStore.getFrameByIndex(index) : null;
                 timeEndEdit.style.display = 'none';
                 timeEndDiv.style.display = 'flex';
                 timeEndEdit.value = formatTime(frameNow ? frameNow.end : frame.end);
@@ -495,13 +509,15 @@ function renderFrames() {
         const pageConnectButton = document.createElement('button');
         pageConnectButton.className = 'frame-button page-connect';
 
-        // Отображаем номер привязанной страницы или "connect", если страница не привязана
-        const pageNumber = frame.connectedPage || 'connect';
+        // Отображаем номер привязанной страницы (display number) или "connect" если не привязана
+        const sbStore2 = window.storyboardStore;
+        const mappedNumber = sbStore2 && typeof sbStore2.getPageNumberById === 'function' ? sbStore2.getPageNumberById(frame.connectedPage) : null;
+        const pageNumber = (mappedNumber !== null && mappedNumber !== undefined) ? mappedNumber : (frame.connectedPage || 'connect');
         pageConnectButton.textContent = pageNumber;
-        pageConnectButton.title = frame.connectedPage ? 
-            `Открыть страницу ${frame.connectedPage}` : 
-            'Привязать к странице';
-        // сохраняем предыдущее значение для быстрого отката (правый клик)
+        pageConnectButton.title = (mappedNumber !== null && mappedNumber !== undefined) ?
+            `Открыть страницу ${pageNumber}` :
+            (frame.connectedPage ? `Открыть страницу ${frame.connectedPage}` : 'Привязать к странице');
+        // сохраняем предыдущее значение (id) для быстрого отката (правый клик)
         pageConnectButton.dataset.prevConnectedPage = (frame.connectedPage == null ? '' : String(frame.connectedPage));
         pageConnectButton.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -513,10 +529,10 @@ function renderFrames() {
             e.preventDefault();
             e.stopPropagation();
             const prev = pageConnectButton.dataset.prevConnectedPage;
-            const store = window.storyboardStore;
-            if (store && prev !== undefined) {
+            const sbStore3 = window.storyboardStore;
+            if (sbStore3 && prev !== undefined) {
                 const val = prev === '' ? null : (isNaN(prev) ? prev : Number(prev));
-                store.setFrameValuesByIndex(index, { connectedPage: val });
+                sbStore3.setFrameValuesByIndex(index, { connectedPage: val });
                 if (window.renderFrames) window.renderFrames();
             }
         });

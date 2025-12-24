@@ -4,7 +4,7 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width,initial-scale=1" />
 	<title>Text Editor — PlotTwister</title>
-	<link rel="stylesheet" href="TextEditor.css">
+	<link rel="stylesheet" href="/static/script/script_redo/TextEditor.css">
 </head>
 <body>
 	<div class="editor-container">
@@ -45,13 +45,11 @@
 				</button>
 			</div>
 			</div>
+			<div class="toolbar-divider"></div>
 
 			<div class="page-info">
-				<div class="page-number">
-					<span>Страница</span>
-					<input id="pageNumber" type="number" value="1" min="1" readonly>
-				</div>
-				<button id="saveBtn" class="save-btn">Сохранить</button>
+				<button id="saveBtn" class="toolbar-btn save-btn">Сохранить</button>
+				<button id="exitBtn" class="toolbar-btn exit-btn">Выйти</button>
 			</div>
 		</aside>
 
@@ -61,6 +59,6 @@
 		</main>
 	</div>
 
-	<script src="TextEditor.js"></script>
+	<script src="/static/script/script_redo/TextEditor.js"></script>
 </body>
 </html>

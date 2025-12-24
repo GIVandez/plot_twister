@@ -81,14 +81,14 @@
 				
 
 					<div class="size-slider">
-						<label for="brushSize">Size</label>
 						<div class="size-control">
 							<!-- Reserve width based on max possible brush size; the preview circle sits above the slider -->
-							<div class="size-preview-wrap" style="--brush-max-size:200px;">
-								<div id="brushSizePreview" class="size-preview-circle"></div>
-							</div>
 							<div class="size-slider-input">
 								<input id="brushSize" type="range" min="1" max="80" value="6">
+								<input id="brushOpacity" type="range" min="0" max="100" value="100">
+							</div>
+							<div class="size-preview-wrap" style="--brush-max-size:200px;">
+								<div id="brushSizePreview" class="size-preview-circle"></div>
 							</div>
 						</div>
 					</div>
@@ -96,19 +96,10 @@
 				</div>
 
 				<div class="panel-group panel bottom-panel">
-					<div class="inputs">
-						<div class="field">
-							<label for="weightInput">Weight</label>
-							<input id="weightInput" type="number" min="1" max="200" value="6">
-						</div>
-						<div class="field">
-							<label for="opacityInput">Opacity</label>
-							<input id="opacityInput" type="number" min="0" max="100" value="100">
-						</div>
-					</div>
 					<div class="actions">
 						<button id="clear">Очистить</button>
 						<button id="save">Сохранить</button>
+						<button id="exit" class="exit-btn">Выход</button>
 					</div>
 					
 

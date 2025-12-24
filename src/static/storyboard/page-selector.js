@@ -472,8 +472,8 @@
 
         const store = window.storyboardStore;
         if (store) {
-            // Отправляем запрос на сервер для связи
-            const success = await store.connectFrame(store.getFrameByIndex(pendingFrameIndex).id, selectedPage.num);
+            // Отправляем запрос на сервер для связи (используем selectedPage.id - database ID)
+            const success = await store.connectFrame(store.getFrameByIndex(pendingFrameIndex).id, selectedPage.id);
             if (success) {
                 // `connectFrame` уже обновил локальные данные; просто перерисуем UI
                 if (window.renderFrames) {
@@ -486,7 +486,7 @@
 
                 setTimeout(() => {
                     if (window.openScriptPage) {
-                        window.openScriptPage(selectedPage.num, frameIndex);
+                        window.openScriptPage(selectedPage.id, frameIndex);
                     }
                 }, 100);
             } else {

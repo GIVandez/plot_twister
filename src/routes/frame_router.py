@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form
 from fastapi.responses import FileResponse
+import shutil
 from dto.frame_dto import (
     DragAndDropFrameRequest, DeleteImageRequest, FrameInfo, LoadFramesResponse,
     RedoStartTimeRequest, RedoEndTimeRequest, NewFrameRequest, NewFrameResponse,
@@ -473,6 +474,98 @@ async def batch_update_times(request: BatchUpdateTimesRequest):
             "updated_count": success_count,
             "errors": errors
         }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
+
+
+@router.get("/api/frame/{frame_id}/image")
+async def get_frame_image(frame_id: int):
+    """Получение изображения кадра по ID"""
+    try:
+        # Получаем информацию о кадре
+        frame_info = frame_model.get_frame_info(frame_id)
+        if not frame_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Кадр не найден"
+            )
+        
+        # Проверяем, есть ли изображение
+        if not frame_info.get('pic_path'):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Изображение не найдено"
+            )
+        
+        # Возвращаем файл
+        file_path = frame_info['pic_path']
+        if file_path.startswith('/'):
+            file_path = file_path[1:]  # Убираем ведущий слэш
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Файл изображения не найден"
+            )
+        
+        return FileResponse(path=file_path, media_type='image/jpeg')
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
+
+
+@router.post("/api/frame/{frame_id}/image")
+async def save_frame_image(frame_id: int, file: UploadFile = File(...)):
+    """Сохранение изображения для кадра"""
+    try:
+        # Проверяем существование кадра
+        frame_info = frame_model.get_frame_info(frame_id)
+        if not frame_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Кадр не найден"
+            )
+        
+        # Проверяем формат файла
+        if file.content_type not in ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Неподдерживаемый формат изображения"
+            )
+        
+        # Создаем директорию для загрузок, если её нет
+        upload_dir = "uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Генерируем уникальное имя файла
+        file_extension = os.path.splitext(file.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(upload_dir, unique_filename)
+        
+        # Сохраняем файл
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Обновляем путь к изображению в базе данных
+        success = frame_model.update_frame_image_path(frame_id, file_path)
+        if not success:
+            # Удаляем файл, если не удалось обновить БД
+            os.remove(file_path)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ошибка при сохранении пути к изображению"
+            )
+        
+        return {"success": True, "file_path": file_path}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
