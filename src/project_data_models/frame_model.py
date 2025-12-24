@@ -85,7 +85,7 @@ class FrameModel:
     
     def edit_frame_info(self, frame_id: int, new_frame_data: Dict) -> bool:
         """
-        Редактирование информации о кадре
+        Редактирование информации о кадре 
         
         Args:
             frame_id: id редактируемого кадра
