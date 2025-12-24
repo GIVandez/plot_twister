@@ -27,7 +27,7 @@ function showFrameInfo(frameData) {
     }
     
     // Сначала скрываем страницу сценария
-    if (typeof hideScriptPage === 'function') hideScriptPage();
+    if (typeof window.hideScriptPage === 'function') window.hideScriptPage();
     
     // Создаем контейнер для информации о кадре
     const frameInfoDisplay = document.createElement('div');
@@ -38,13 +38,13 @@ function showFrameInfo(frameData) {
     // Изображение кадра - растянуто на всю ширину, формат 16:9
     const frameImage = document.createElement('img');
     frameImage.className = 'frame-image-info';
-    frameImage.src = `path/to/images/${frameData.image}.jpg`;
-    frameImage.alt = frameData.image;
+    frameImage.src = `/api/frame/${frameData.id}/image`;
+    frameImage.alt = ''; // Не показываем alt текст
 
     // клик по изображению — переход в GraphicEditor
     frameImage.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        window.location.href = 'file:///C:/Users/iluha/Desktop/pt/graphiceditor/GraphicEditor.html';
+        window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frameData.id}`;
     });
 
     // Флаг для отслеживания, была ли запущена анимация
@@ -67,12 +67,12 @@ function showFrameInfo(frameData) {
             font-size: 18px;
             cursor: pointer;
         `;
-        fallbackDiv.textContent = frameData.image;
+        fallbackDiv.textContent = ''; // Не показываем текст, просто белый фон
 
         // клик по fallback тоже ведет в GraphicEditor
         fallbackDiv.addEventListener('click', (ev) => {
             ev.stopPropagation();
-            window.location.href = 'file:///C:/Users/iluha/Desktop/pt/graphiceditor/GraphicEditor.html';
+            window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frameData.id}`;
         });
 
         frameInfoDisplay.insertBefore(fallbackDiv, frameInfoDisplay.firstChild);
@@ -133,12 +133,18 @@ function showFrameInfo(frameData) {
     // Кнопка привязанной страницы — сделать поведение как у левой `frame-button page-connect`
     const pageConnectBtn = document.createElement('button');
     pageConnectBtn.className = 'frame-control-btn page-connect';
-    const pageNumber = (typeof frameData.connectedPage !== 'undefined' && frameData.connectedPage !== null && frameData.connectedPage !== '') ? frameData.connectedPage : 'connect';
-    pageConnectBtn.textContent = `${pageNumber}`;
-    pageConnectBtn.title = frameData.connectedPage ?
-        `Открыть страницу ${frameData.connectedPage}` :
+    // Display page NUMBER (not the DB id)
+    const sbStore = window.storyboardStore;
+    let displayNumber = 'connect';
+    if (typeof frameData.connectedPage !== 'undefined' && frameData.connectedPage !== null && frameData.connectedPage !== '') {
+      const mapped = sbStore && typeof sbStore.getPageNumberById === 'function' ? sbStore.getPageNumberById(frameData.connectedPage) : null;
+      displayNumber = (mapped !== null && mapped !== undefined) ? mapped : frameData.connectedPage;
+    }
+    pageConnectBtn.textContent = `${displayNumber}`;
+    pageConnectBtn.title = (typeof frameData.connectedPage !== 'undefined' && frameData.connectedPage !== null && frameData.connectedPage !== '') ?
+        `Открыть страницу ${displayNumber}` :
         'Привязать к странице';
-    // сохраняем предыдущее значение для быстрого отката (правый клик)
+    // сохраняем предыдущее значение (id) для быстрого отката (правый клик)
     pageConnectBtn.dataset.prevConnectedPage = (frameData.connectedPage == null ? '' : String(frameData.connectedPage));
     pageConnectBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -150,10 +156,10 @@ function showFrameInfo(frameData) {
         e.preventDefault();
         e.stopPropagation();
         const prev = pageConnectBtn.dataset.prevConnectedPage;
-        const store = window.storyboardStore;
-        if (store && prev !== undefined) {
+        const sbStore2 = window.storyboardStore;
+        if (sbStore2 && prev !== undefined) {
             const val = prev === '' ? null : (isNaN(prev) ? prev : Number(prev));
-            store.setFrameValuesByIndex(frameIndex, { connectedPage: val });
+            sbStore2.setFrameValuesByIndex(frameIndex, { connectedPage: val });
             if (window.renderFrames) window.renderFrames();
         }
     });
@@ -533,7 +539,7 @@ function initFramesDragDrop() {
         window._suppressHideOnClick = true;
 
         // Показываем информацию о кадре в правой панели
-        showFrameInfo(frameData);
+        window.showFrameInfo(frameData);
 
         dragClone = draggedElement.cloneNode(true);
         const del = dragClone.querySelector('.frame-delete-btn');

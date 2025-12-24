@@ -93,14 +93,11 @@ async def delete_page(request: DeletePageRequest):
 async def redo_page(request: RedoPageRequest):
     """Редактирование страницы из сценария"""
     try:
-        if not request.text:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Пустой текст"
-            )
+        # Allow empty text (client may intentionally clear page); do not treat as bad request
         
         page_info = page_model.get_page(request.page_id)
         if not page_info:
+            # If page not found, return a not-found error to caller — nothing to edit
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Страница не найдена"
@@ -165,13 +162,11 @@ async def load_page(page_id: int):
     """Загрузка текста страницы"""
     try:
         page_info = page_model.get_page(page_id)
+        # If page is missing or has no text, return an empty text response (don't treat as error)
         if not page_info:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Страница не найдена"
-            )
-        
-        return LoadPageResponse(text=page_info.get('text', ''))
+            return LoadPageResponse(text='')
+
+        return LoadPageResponse(text=page_info.get('text', '') or '')
     except HTTPException:
         raise
     except Exception as e:

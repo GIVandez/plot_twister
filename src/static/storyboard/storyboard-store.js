@@ -339,11 +339,19 @@
   }
 
   // PAGES: теперь pages[n] -> { number, text }
+  // getPages() returns array of { id, num, text } where:
+  //   - id: the database page ID (the dictionary key)
+  //   - num: the display order/number
+  //   - text: the page text
   function getPages() {
-    return getPageNumbers().map((num) => {
-      const p = pages[num];
+    return getPageNumbers().map((key) => {
+      const p = pages[key];
+      // If stored page object has explicit `number` use it (this is the display/order number),
+      // otherwise fall back to the key (likely numeric id).
+      const displayNum = (p && typeof p === 'object' && typeof p.number === 'number') ? p.number : Number(key);
       return {
-        num: Number(num),
+        id: Number(key),    // database page ID
+        num: displayNum,    // display order number
         text: p && typeof p === 'object' ? p.text : p
       };
     });
@@ -423,6 +431,33 @@
       console.error('Error loading pages:', error);
       return false;
     }
+  }
+
+  // Helpers to map between page database ID and display number
+  function getPageNumberById(id) {
+    if (id === null || id === undefined || id === '') return null;
+    const key = String(id);
+    const p = pages[key];
+    return p && typeof p === 'object' && typeof p.number === 'number' ? p.number : null;
+  }
+
+  function getPageIdByNumber(number) {
+    if (number === null || number === undefined) return null;
+    const n = Number(number);
+    if (!Number.isFinite(n)) return null;
+    for (const [key, p] of Object.entries(pages)) {
+      if (p && typeof p === 'object' && Number(p.number) === n) {
+        return Number(key);
+      }
+    }
+    return null;
+  }
+
+  function getPageTextById(id) {
+    if (id === null || id === undefined || id === '') return null;
+    const key = String(id);
+    const p = pages[key];
+    return p && typeof p === 'object' ? (p.text || '') : null;
   }
 
   // Other API functions
@@ -814,6 +849,9 @@
     getPages,
     getPageNumbers,
     getPageText,
+    getPageNumberById,
+    getPageIdByNumber,
+    getPageTextById,
     setPageText,
     loadFrames,
     loadPages,

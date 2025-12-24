@@ -57,8 +57,8 @@ function initFramesClick() {
         currentSelectedFrame = frame;
         
         // Закрываем страницу сценария и показываем информацию о кадре
-        hideScriptPage();
-        showFrameInfo(frameData);
+        if (typeof window.hideScriptPage === 'function') window.hideScriptPage();
+        if (typeof window.showFrameInfo === 'function') window.showFrameInfo(frameData);
     }
     
     function handleDocumentClick(e) {
@@ -69,7 +69,7 @@ function initFramesClick() {
 
         // Если клик вне кадра, скрываем информацию
         if (!e.target.closest('.frame') && !e.target.closest('.frame-info-display')) {
-            hideFrameInfo();
+            if (typeof window.hideFrameInfo === 'function') window.hideFrameInfo();
             
             // Убираем выделение
             if (currentSelectedFrame) {

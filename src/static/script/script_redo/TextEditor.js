@@ -10,7 +10,6 @@ class TextEditor {
 		this.centerAlignBtn = document.getElementById('centerAlignBtn');
 		this.rightAlignBtn = document.getElementById('rightAlignBtn');
 		this.saveBtn = document.getElementById('saveBtn');
-		this.pageNumber = document.getElementById('pageNumber');
 		this.themeToggleBtn = document.getElementById('themeToggleBtn');
 		this.pageThemeToggleBtn = document.getElementById('pageThemeToggleBtn');
 
@@ -19,15 +18,28 @@ class TextEditor {
 		// Determine page number and id from query params if present
 		const params = new URLSearchParams(window.location.search);
 		this.currentPage = Number(params.get('pageNum')) || 1;
+		this.exitBtn = document.getElementById('exitBtn');
 		this.currentPageId = params.get('pageId') ? Number(params.get('pageId')) : null;
 
 		// Page storage (simulated in-memory for now)
+		this.dirty = false;
 		this.pages = {};
 
 		this.init();
 	}
 
 	init() {
+		// Prevent browser back button from navigating away without warning
+		history.pushState(null, null, location.href);
+		window.addEventListener('popstate', (e) => {
+			if (this.dirty) {
+				const leave = confirm('Текст изменён и не сохранён. Данные будут потеряны. Всё равно уйти?');
+				if (!leave) {
+					history.pushState(null, null, location.href);
+				}
+			}
+		});
+
 		this.loadTheme();
 		this.loadPageTheme();
 		this.setupEventListeners();
@@ -49,8 +61,11 @@ class TextEditor {
 		this.undoBtn.addEventListener('click', () => this.undo());
 		this.redoBtn.addEventListener('click', () => this.redo());
 
-		// Save button
-		this.saveBtn.addEventListener('click', () => this.saveToFile());
+		// Save button -> persist to server via API
+		this.saveBtn.addEventListener('click', async (e) => {
+			e.preventDefault();
+			await this.savePage();
+		});
 
 		// Theme toggle button
 		this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
@@ -58,9 +73,41 @@ class TextEditor {
 		// Page theme toggle button
 		this.pageThemeToggleBtn.addEventListener('click', () => this.togglePageTheme());
 
+		// Exit button: ask to save if dirty, then navigate back to pages list
+		if (this.exitBtn) {
+			this.exitBtn.addEventListener('click', async (e) => {
+				e.preventDefault();
+				if (!this.dirty) {
+					window.location.href = '/static/script/script.html';
+					return;
+				}
+				const save = confirm('Текст изменён. Сохранить перед выходом?');
+				if (save) {
+					const ok = await this.savePage();
+					if (ok) window.location.href = '/static/script/script.html';
+					else {
+						const exitAnyway = confirm('Сохранение не удалось. Выйти без сохранения?');
+						if (exitAnyway) window.location.href = '/static/script/script.html';
+					}
+				} else {
+					window.location.href = '/static/script/script.html';
+				}
+			});
+		}
+
 		// Content area - track changes for undo/redo
 		this.textContent.addEventListener('beforeinput', () => {
 			this.saveState();
+			this.dirty = true;
+		});
+
+		// Warn user about unsaved changes when trying to leave the page
+		window.addEventListener('beforeunload', (e) => {
+			if (this.dirty) {
+				e.preventDefault();
+				e.returnValue = 'Текст изменён и не сохранён. Данные будут потеряны при выходе.';
+				return e.returnValue;
+			}
 		});
 
 		// Keyboard shortcuts
@@ -81,6 +128,18 @@ class TextEditor {
 						this.undo();
 					}
 				}
+			}
+		});
+
+		// Intercept Enter key in the editable area to insert <br> instead of creating new block elements
+		this.textContent.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				// save state for undo before changing content
+				this.saveState();
+				this.insertLineBreakAtCaret();
+				this.dirty = true;
+				this.updateButtonStates();
 			}
 		});
 
@@ -105,14 +164,35 @@ class TextEditor {
 		this.updateButtonStates();
 	}
 
+	// Insert a line break (<br>) at the current caret position without creating new block elements
+	insertLineBreakAtCaret() {
+		const sel = window.getSelection();
+		if (!sel || !sel.rangeCount) return;
+		const range = sel.getRangeAt(0);
+		// save current selection contents to undo stack first
+		range.deleteContents();
+		// Insert an invisible zwsp after a <br> so we can place the caret reliably
+		const zw = document.createTextNode('\u200B');
+		const br = document.createElement('br');
+		range.insertNode(zw);
+		range.insertNode(br);
+		// Move caret after the zwsp
+		range.setStartAfter(zw);
+		range.collapse(true);
+		sel.removeAllRanges();
+		sel.addRange(range);
+	}
+
 	applyAlignment(alignment) {
+		// Use CSS text-align on the single editable container to avoid
+		// splitting content into separate block elements.
 		this.textContent.focus();
 		if (alignment === 'left') {
-			document.execCommand('justifyLeft', false, null);
+			this.textContent.style.textAlign = 'left';
 		} else if (alignment === 'center') {
-			document.execCommand('justifyCenter', false, null);
+			this.textContent.style.textAlign = 'center';
 		} else if (alignment === 'right') {
-			document.execCommand('justifyRight', false, null);
+			this.textContent.style.textAlign = 'right';
 		}
 		this.updateButtonStates();
 	}
@@ -123,13 +203,12 @@ class TextEditor {
 		this.italicBtn.classList.toggle('active', document.queryCommandState('italic'));
 
 		// Update alignment button states
-		const isLeft = document.queryCommandState('justifyLeft');
-		const isCenter = document.queryCommandState('justifyCenter');
-		const isRight = document.queryCommandState('justifyRight');
-
-		this.leftAlignBtn.classList.toggle('active', isLeft);
-		this.centerAlignBtn.classList.toggle('active', isCenter);
-		this.rightAlignBtn.classList.toggle('active', isRight);
+		// Prefer checking the container's computed text-align to avoid
+		// relying on document.execCommand states which may reflect block-level changes.
+		const comp = window.getComputedStyle(this.textContent).textAlign;
+		this.leftAlignBtn.classList.toggle('active', comp === 'left' || comp === 'start');
+		this.centerAlignBtn.classList.toggle('active', comp === 'center');
+		this.rightAlignBtn.classList.toggle('active', comp === 'right' || comp === 'end');
 	}
 
 	saveState() {
@@ -167,7 +246,8 @@ class TextEditor {
 		this.updateButtonStates();
 	}
 
-	async savePage() {
+	async savePage(options = { notify: true }) {
+		const notify = options && options.notify !== false;
 		// Save current page content to memory
 		this.pages[this.currentPage] = this.textContent.innerHTML;
 		console.log(`Page ${this.currentPage} saved to memory`);
@@ -182,19 +262,28 @@ class TextEditor {
 				});
 				if (!resp.ok) throw new Error('Failed to save page');
 				console.log('Page saved to server');
+				this.dirty = false;
+				if (notify) try { alert('Страница успешно сохранена.'); } catch(e) {}
+				return true;
 			} catch (e) {
 				console.error('Error saving page to server', e);
-				alert('Ошибка при сохранении страницы на сервер');
+				if (notify) alert('Ошибка при сохранении страницы на сервер');
+				return false;
 			}
+		} else {
+			// No server persistence available; consider as saved locally
+			this.dirty = false;
+			if (notify) try { alert('Страница сохранена локально.'); } catch(e) {}
+			return true;
 		}
 	}
 
 	async loadPage(pageNum) {
 		// Save current page before switching
-		this.savePage();
+		// Automatic save on page switch should not notify the user
+		this.savePage({ notify: false });
 
 		this.currentPage = pageNum;
-		this.pageNumber.value = pageNum;
 
 		// Load page content from server if pageId present
 		if (this.currentPageId) {
@@ -226,11 +315,13 @@ class TextEditor {
 
 		this.textContent.focus();
 		this.updateButtonStates();
+		this.dirty = false;
 	}
 
 	saveToFile() {
 		// Save current page content before exporting
-		this.savePage();
+		// Save without notifying the user (export flow)
+		this.savePage({ notify: false });
 
 		// Get text content (plain text, stripping HTML tags)
 		const plainText = this.getPlainText();

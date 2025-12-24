@@ -2,10 +2,20 @@
 // Здесь реализованы: временное хранение данных (localStorage), создание/редактирование/удаление проектов,
 // а также настройки аккаунта (смена аватарки, логина и почты).
 (function(){
+  // ----- Проверка авторизации (сессионный токен) -----
+  const accessToken = sessionStorage.getItem('pt_access_token');
+  const sessionLogin = sessionStorage.getItem('pt_login');
+  
+  // Если нет токена — перенаправляем на страницу входа
+  if (!accessToken || !sessionLogin) {
+    window.location.href = 'http://127.0.0.1:8000/auth/login.html';
+    return;
+  }
+
   // ----- Данные пользователя (временное хранение в localStorage) -----
   let user = {
     // логин и почта по умолчанию можно переопределить в localStorage
-    login: localStorage.getItem('pt_login') || 'plotuser',
+    login: sessionLogin || localStorage.getItem('pt_login') || 'plotuser',
     email: localStorage.getItem('pt_email') || 'user@example.com',
     avatar: localStorage.getItem('pt_avatar') || null
   };
@@ -15,9 +25,7 @@
   let projects = JSON.parse(localStorage.getItem('pt_projects') || '[]');
 
   // ----- Ссылки на элементы DOM -----
-  const avatarDisplay = document.getElementById('avatarDisplay'); // круг аватара в шапке
   const avatarPreview = document.getElementById('avatarPreview'); // превью в настройках
-  const userEmail = document.getElementById('userEmail');
   const userLogin = document.getElementById('userLogin');
 
   const initialCreate = document.getElementById('initialCreate'); // центральная карточка создания (когда нет проектов)
@@ -27,20 +35,9 @@
   const projectModal = document.getElementById('projectModalOverlay'); // оверлей модалки создания/редактирования
   const projName = document.getElementById('projName');
   // ориентирование теперь задаётся кнопками в .orient-row
-  const orientRow = document.getElementById('orientRow');
   
   const projCreate = document.getElementById('projCreate');
   const projCancel = document.getElementById('projCancel');
-
-  const settingsBtn = document.getElementById('settingsBtn'); // кнопка шестерёнки
-  const settingsOverlay = document.getElementById('settingsOverlay'); // оверлей настроек
-  const settingsCancel = document.getElementById('settingsCancel');
-  const settingsSave = document.getElementById('settingsSave');
-  const avatarFile = document.getElementById('avatarFile'); // input type=file для аватара (скрытый)
-  const chooseFileBtn = document.getElementById('chooseFileBtn');
-  const fileNameLabel = document.getElementById('fileName');
-  const setLogin = document.getElementById('setLogin');
-  const setEmail = document.getElementById('setEmail');
 
   // editingId === null -> создание нового проекта; иначе - редактируем проект с этим id
   let editingId = null;
@@ -50,20 +47,7 @@
 
   // Применяет данные пользователя к DOM (шапка и превью в настройках)
   function applyUser(){
-    userEmail.textContent = user.email;
     userLogin.textContent = user.login;
-    if(user.avatar){
-      // если загружена картинка — показываем её
-      avatarDisplay.innerHTML = '<img src="'+user.avatar+'">';
-      avatarPreview.innerHTML = '<img src="'+user.avatar+'">';
-    } else {
-      // иначе показываем первые две буквы логина
-      avatarDisplay.textContent = (user.login||'PT').slice(0,2).toUpperCase();
-      avatarPreview.textContent = (user.login||'PT').slice(0,2).toUpperCase();
-    }
-    // заполняем поля настроек текущими значениями
-    setLogin.value = user.login; setEmail.value = user.email;
-    if(user.avatar) avatarPreview.classList.add('has-img');
   }
 
   // Генератор простого id для проекта
@@ -114,11 +98,33 @@
       // Навигация в страницу проекта при клике по плитке (если клик не по меню)
       el.addEventListener('click',(ev)=>{
         if(ev.target.closest('.proj-menu')) return; // клик по меню — не навигация
-        window.location.href = 'ProjectMainPage.html?projectId=' + encodeURIComponent(p.id);
+        // Переходим на страницу проекта (используем статическую страницу в /project)
+        window.location.href = '/project/ProjectMainPage.html?projectId=' + encodeURIComponent(p.id);
       });
 
       projectsGrid.appendChild(el);
     });
+
+  }
+
+  // Загружает проекты пользователя с сервера
+  function fetchUserProjects(){
+    if(!user || !user.login) { projects = []; renderProjects(); return; }
+    fetch('/api/users/' + encodeURIComponent(user.login) + '/loadInfo')
+      .then(resp => {
+        if(resp.status === 204){ projects = []; renderProjects(); return null; }
+        if(!resp.ok) throw new Error('Не удалось загрузить проекты');
+        return resp.json();
+      })
+      .then(data => {
+        if(!data) return;
+        projects = data.projects.map(p => ({ id: p.project_id, name: p.project_name, orientation: 'horizontal' }));
+        saveState(); renderProjects();
+      })
+      .catch(err => {
+        console.error('Failed to load projects', err);
+        projects = []; renderProjects();
+      });
   }
 
   // Открыть модалку для создания проекта
@@ -126,8 +132,6 @@
     editingId = null; projName.value='';
     // при создании ставим подпись кнопки обратно в "Создать"
     if(projCreate) projCreate.textContent = 'Создать';
-    // по умолчанию выбираем горизонтальную ориентацию
-    if(orientRow){ orientRow.querySelectorAll('.orient-btn').forEach(b=>b.classList.remove('active')); const h = orientRow.querySelector('.orient-btn[data-orient="horizontal"]'); if(h) h.classList.add('active'); }
     projectModal.classList.add('show'); projectModal.setAttribute('aria-hidden','false');
   }
   function closeProjectModal(){ projectModal.classList.remove('show'); projectModal.setAttribute('aria-hidden','true'); }
@@ -136,8 +140,6 @@
   function openEditModal(id){
     const p = projects.find(x=>x.id===id); if(!p) return;
     editingId = id; projName.value = p.name;
-    // выставляем активную кнопку ориентации в модалке
-    if(orientRow){ orientRow.querySelectorAll('.orient-btn').forEach(b=>b.classList.remove('active')); const sel = orientRow.querySelector('.orient-btn[data-orient="'+(p.orientation||'horizontal')+'"]'); if(sel) sel.classList.add('active'); }
     // меняем заголовок и текст кнопки на "Сохранить" при редактировании
     document.getElementById('projectModalTitle').textContent='Редактировать проект';
     if(projCreate) projCreate.textContent = 'Сохранить';
@@ -150,8 +152,25 @@
     const p = projects.find(x=>x.id===id);
     const name = p ? (p.name || 'Без названия') : '';
     showConfirm('Удалить проект "' + name + '"? Это действие необратимо.', ()=>{
-      projects = projects.filter(p=>p.id!==id);
-      saveState(); renderProjects();
+      // Отправляем запрос на удаление на сервер
+      fetch('/api/user/deleteProject', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: id })
+      })
+      .then(resp => {
+        if(!resp.ok){ return resp.json().then(j=>{ throw new Error(j.detail || 'Ошибка при удалении проекта'); }); }
+        return resp.json().catch(()=>({ success: true }));
+      })
+      .then(data => {
+        // Удаляем локально и перерисовываем
+        projects = projects.filter(p=>p.id!==id);
+        saveState(); renderProjects();
+      })
+      .catch(err => {
+        console.error('Delete project failed', err);
+        alert('Не удалось удалить проект: ' + (err.message || 'ошибка'));
+      });
     });
   }
 
@@ -159,18 +178,56 @@
   projCreate.addEventListener('click', ()=>{
     const name = projName.value.trim() || 'Новый проект';
     // определяем выбранную ориентацию по активной кнопке
-    let orient = 'horizontal';
-    if(orientRow){ const active = orientRow.querySelector('.orient-btn.active'); if(active) orient = active.dataset.orient || 'horizontal'; }
-    if(editingId){ // обновляем существующий
-      const p = projects.find(x=>x.id===editingId);
-      if(p){ p.name = name; p.orientation = orient; }
-    } else {
-      const newP = {id: uid(), name, orientation: orient};
-      projects.unshift(newP); // добавляем в начало списка
+
+    if(editingId){ // обновляем существующий на сервере
+      projCreate.disabled = true; // блокируем кнопку на время запроса
+      fetch('/api/user/updateProjectInfo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: editingId, name: name })
+      })
+      .then(resp => {
+        projCreate.disabled = false;
+        if(!resp.ok){ return resp.json().then(j=>{ throw new Error(j.detail || 'Ошибка обновления проекта'); }); }
+        // Обновляем локально
+        const p = projects.find(x=>x.id===editingId);
+        if(p){ p.name = name; saveState(); renderProjects(); }
+        closeProjectModal(); document.getElementById('projectModalTitle').textContent='Создать проект';
+        if(projCreate) projCreate.textContent = 'Создать';
+      })
+      .catch(err => {
+        projCreate.disabled = false;
+        console.error('Update project failed', err);
+        alert('Не удалось обновить проект: ' + (err.message || 'ошибка'));
+      });
+      return;
     }
-    saveState(); renderProjects(); closeProjectModal(); document.getElementById('projectModalTitle').textContent='Создать проект';
-    // после сохранения сбрасываем текст кнопки обратно для следующего создания
-    if(projCreate) projCreate.textContent = 'Создать';
+
+    // Создаём проект на сервере
+    if(!user || !user.login){ alert('Не удалось определить пользователя. Перезайдите.'); return; }
+    projCreate.disabled = true; // блокируем кнопку на время запроса
+    fetch('/api/user/createProject', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, login: user.login })
+    })
+    .then(resp => {
+      projCreate.disabled = false;
+      if(!resp.ok){ return resp.json().then(j=>{ throw new Error(j.detail || 'Ошибка создания проекта'); }); }
+      return resp.json();
+    })
+    .then(data => {
+      // Ожидается { project_id }
+      const newP = { id: data.project_id, name: name };
+      projects.unshift(newP);
+      saveState(); renderProjects(); closeProjectModal(); document.getElementById('projectModalTitle').textContent='Создать проект';
+      if(projCreate) projCreate.textContent = 'Создать';
+    })
+    .catch(err => {
+      projCreate.disabled = false;
+      console.error('Create project failed', err);
+      alert('Не удалось создать проект: ' + (err.message || 'ошибка'));
+    });
   });
 
   // Отмена в модалке
@@ -179,45 +236,6 @@
   // Клик/клавиши для центральной карточки создания
   initialCreate.addEventListener('click', ()=>openCreateModal());
   initialCreate.addEventListener('keydown',(e)=>{ if(e.key==='Enter' || e.key===' ') openCreateModal(); });
-
-  // ----- Настройки аккаунта (шестерёнка) -----
-  settingsBtn.addEventListener('click', (e)=>{ settingsOverlay.classList.add('show'); settingsOverlay.setAttribute('aria-hidden','false'); });
-  settingsCancel.addEventListener('click', ()=>{ settingsOverlay.classList.remove('show'); settingsOverlay.setAttribute('aria-hidden','true'); });
-
-  // Сохранение настроек: логин и почта (аватар уже сохраняется при выборе файла)
-  settingsSave.addEventListener('click', ()=>{
-    user.login = setLogin.value.trim() || user.login; user.email = setEmail.value.trim() || user.email;
-    localStorage.setItem('pt_login', user.login); localStorage.setItem('pt_email', user.email);
-    localStorage.setItem('pt_avatar', user.avatar || '');
-    applyUser(); settingsOverlay.classList.remove('show'); settingsOverlay.setAttribute('aria-hidden','true');
-  });
-
-  // Кнопка выхода из аккаунта: очищаем локальные пользовательские данные и перезагружаем страницу
-  const logoutBtn = document.getElementById('logoutBtn');
-  if(logoutBtn){
-    logoutBtn.addEventListener('click', ()=>{
-      // Очищаем ключи, связанные с аккаунтом (не удаляем проекты автоматически, если не нужно)
-      localStorage.removeItem('pt_login');
-      localStorage.removeItem('pt_email');
-      localStorage.removeItem('pt_avatar');
-      // Перезагружаем страницу, чтобы отразить выход
-      location.reload();
-    });
-  }
-
-  // Кнопка "Выбрать файл" — открывает скрытый input
-  if(chooseFileBtn && avatarFile){
-    chooseFileBtn.addEventListener('click', ()=>avatarFile.click());
-  }
-
-  // Загрузка файла аватара и отображение превью/имени файла в настройках
-  avatarFile.addEventListener('change', ()=>{
-    const f = avatarFile.files && avatarFile.files[0];
-    if(!f){ if(fileNameLabel) fileNameLabel.textContent = 'Файл не выбран'; return; }
-    if(fileNameLabel) fileNameLabel.textContent = f.name;
-    const reader = new FileReader(); reader.onload = function(){ user.avatar = reader.result; localStorage.setItem('pt_avatar', user.avatar); applyUser(); };
-    reader.readAsDataURL(f);
-  });
 
   // ----- Кастомное окно подтверждения (удаление проектов) -----
   const confirmOverlay = document.getElementById('confirmOverlay');
@@ -237,20 +255,12 @@
   // Закрываем подтверждение по клику вне
   if(confirmOverlay) confirmOverlay.addEventListener('click',(e)=>{ if(e.target===confirmOverlay) hideConfirm(); });
 
-  // Обработка клика по кнопкам ориентации в модалке
-  if(orientRow){
-    orientRow.addEventListener('click',(e)=>{
-      const b = e.target.closest('.orient-btn'); if(!b) return;
-      orientRow.querySelectorAll('.orient-btn').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-    });
-  }
-
   // Закрываем все открытые меню плиток при клике вне
   document.addEventListener('click', ()=>{ document.querySelectorAll('.proj-menu.open').forEach(n=>n.classList.remove('open')); });
+  document.addEventListener('click', ()=>{ document.querySelectorAll('.proj-menu.open').forEach(n=>n.classList.remove('open')); });
 
-  // Инициализация: применяем данные пользователя и отрисовываем проекты
-  applyUser(); renderProjects();
+  // Инициализация: применяем данные пользователя и загружаем проекты с сервера
+  applyUser(); fetchUserProjects();
 
   // Экспортим для отладки в консоль: window._pt
   window._pt = { projects, add(project){ projects.unshift(project); saveState(); renderProjects(); } };

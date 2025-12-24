@@ -13,19 +13,23 @@ html,body{
     margin:0;
     font-family:Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
     background:var(--page-bg);
-    color:var(--text-color)}
+    color:var(--text-color);
+    overflow:hidden;
+}
 
 .form-wrap{
-    min-height:100vh;
+    height:100%;
     display:flex;
     align-items:center;
     justify-content:center;
     padding:24px
 }
 body .btn{
+    position:fixed;
+    top:20px;
+    right:20px;
     text-decoration: none;
-    margin-left: 87%;
-    margin-top: 20px;
+    z-index:60;
 }
 .form-card{
     width:360px;

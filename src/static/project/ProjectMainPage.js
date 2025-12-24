@@ -16,13 +16,32 @@
       const p = projs.find(x=>x.id===pid);
       if(p && titleInput) { titleInput.value = p.name || titleInput.value; document.title = (p.name||'Проект') + ' — PlotTwister'; }
       // если есть сохранённый state — отрисуем иконки
+      const storyTile = document.querySelector('.plus-tile[data-type="story"]');
+      const scriptTile = document.querySelector('.plus-tile[data-type="script"]');
       if(p){
-        // render storyboard/script if flags present
-        const storyTile = document.querySelector('.plus-tile[data-type="story"]');
-        const scriptTile = document.querySelector('.plus-tile[data-type="script"]');
         if(p.hasStoryboard && storyTile) createStory(storyTile, /*persist*/ false);
         if(p.hasScript && scriptTile) createScript(scriptTile, /*persist*/ false);
       }
+
+      // Проверяем наличие кадров и страниц на сервере и обновляем плитки
+      (async function checkRemoteData(){
+        try{
+          // Проверка наличия кадров: считаем, что статус 204 = нет кадров
+          const framesResp = await fetch(`/api/frame/${encodeURIComponent(PROJECT_ID)}/loadFrames`);
+          if(framesResp.ok && framesResp.status !== 204){
+            if(storyTile) createStory(storyTile, /*persist*/ false);
+          }
+        }catch(e){ /* ignore - 204 or error means no frames */ }
+
+        try{
+          // Проверка наличия страниц: статус 204 = нет страниц
+          const pagesResp = await fetch(`/api/page/${encodeURIComponent(PROJECT_ID)}/loadPages`);
+          if(pagesResp.ok && pagesResp.status !== 204){
+            if(scriptTile) createScript(scriptTile, /*persist*/ false);
+          }
+        }catch(e){ /* ignore */ }
+      })();
+
     }catch(e){ /* ignore malformed localStorage */ }
   })();
 
@@ -45,9 +64,48 @@
     if (!tile) return;
     const type = tile.dataset.type;
     if (!type) return;
-    if (tile.dataset.state === 'created') return; // already created
-    if (type === 'story') createStory(tile);
-    if (type === 'script') createScript(tile);
+
+    // If already created, navigate to appropriate page
+    if (tile.dataset.state === 'created'){
+      if(type === 'story'){
+        window.location.href = '/storyboard/index.html?project=' + encodeURIComponent(PROJECT_ID);
+        return;
+      }
+      if(type === 'script'){
+        window.location.href = '/script/script.html?project=' + encodeURIComponent(PROJECT_ID);
+        return;
+      }
+    }
+
+    // Not created yet: create on server
+    if(type === 'story'){
+      // create one frame (use defaults)
+      fetch('/api/frame/newFrame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: Number(PROJECT_ID), start_time: 0, end_time: 1, description: '' })
+      }).then(resp => {
+        if(!resp.ok) return resp.json().then(j=>{ throw new Error(j.detail || 'Ошибка создания кадра'); });
+        return resp.json();
+      }).then(data => {
+        // mark tile as created
+        createStory(tile, /*persist*/ true);
+      }).catch(err => { console.error('create frame failed', err); alert('Не удалось создать кадр: ' + (err.message||'Ошибка')); });
+    }
+
+    if(type === 'script'){
+      // create one page
+      fetch('/api/page/newPage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: Number(PROJECT_ID) })
+      }).then(resp => {
+        if(!resp.ok) return resp.json().then(j=>{ throw new Error(j.detail || 'Ошибка создания страницы'); });
+        return resp.json();
+      }).then(data => {
+        createScript(tile, /*persist*/ true);
+      }).catch(err => { console.error('create page failed', err); alert('Не удалось создать страницу: ' + (err.message||'Ошибка')); });
+    }
   });
 
   function createStory(tile, persist = true){

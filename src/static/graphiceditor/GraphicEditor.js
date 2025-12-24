@@ -4,8 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // const canvasEl = document.getElementById('fabricCanvas'); // not used; Fabric owns the canvas
     const toolButtons = document.querySelectorAll('.tool');
     const brushSizeEl = document.getElementById('brushSize');
-    const weightInput = document.getElementById('weightInput');
-    const opacityInput = document.getElementById('opacityInput');
+    const brushOpacity = document.getElementById('brushOpacity');
     const undoBtn = document.getElementById('undo');
     const redoBtn = document.getElementById('redo');
     const clearBtn = document.getElementById('clear');
@@ -14,6 +13,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // size preview element in toolbar
     const brushSizePreviewEl = document.getElementById('brushSizePreview');
+
+    // Helper function to convert dataURL to Blob
+    function dataURLToBlob(dataURL) {
+        const arr = dataURL.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
+    }
 
     // Инициализация pickera (iro.js)
     const colorPicker = new iro.ColorPicker('#colorWheel', {
@@ -136,6 +148,24 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.setWidth(Math.max(400, rect.width - 40));
         canvas.setHeight(Math.max(300, rect.height - 40));
         canvas.calcOffset();
+        // If a frame image is loaded, resize it to match the new canvas dimensions
+        try {
+            if (frameImageObject) {
+                // Stretch image to cover full canvas (may change aspect ratio)
+                const img = frameImageObject;
+                img.set({ left: 0, top: 0, originX: 'left', originY: 'top' });
+                // Calculate scaleX/scaleY to exactly fill canvas
+                const sx = canvas.getWidth() / (img.width || img.getScaledWidth());
+                const sy = canvas.getHeight() / (img.height || img.getScaledHeight());
+                img.scaleX = sx;
+                img.scaleY = sy;
+                // Ensure object coordinates are updated
+                img.setCoords();
+            }
+        } catch (e) {
+            console.warn('fitCanvas image resize failed', e);
+        }
+
         // fitCanvas: update canvas dimensions
         canvas.renderAll();
         ensureTopCanvasIsTransparent();
@@ -143,9 +173,34 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', fitCanvas);
     fitCanvas();
     ensureTopCanvasIsTransparent();
+
+    // Store reference to loaded frame image object so we can resize it on canvas resize
+    let frameImageObject = null;
+    // Track saved state vs unsaved changes
+    let lastSavedState = null; // JSON string
+    let isDirty = false;
+
+    // Load image if frame_id is provided in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const frameId = urlParams.get('frame_id');
+    if (frameId) {
+        loadFrameImage(frameId);
+    }
+
+    // Return brush opacity as a float 0..1 (handles 0 correctly)
+    function getBrushAlpha() {
+        try {
+            const raw = brushOpacity && brushOpacity.value;
+            let n = parseInt(raw, 10);
+            if (!Number.isFinite(n)) n = 100; // default to 100 when not a number
+            n = Math.max(0, Math.min(100, n));
+            return n / 100;
+        } catch (e) { return 1; }
+    }
+
     // Helper for shape options
     function makeShapeOptions(extra = {}) {
-        const alpha = (parseInt(opacityInput?.value || 100, 10) || 100) / 100;
+        const alpha = getBrushAlpha();
         return Object.assign({
             stroke: hexToRgba(getCurrentHex(), alpha),
             strokeWidth: parseInt(brushSizeEl.value, 10),
@@ -171,8 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
             d.dataset.color = color;
             paletteEl.appendChild(d);
         });
-        // grey slots
-        for (let i=0;i<4;i++){
+        // grey slots (extend by 3 additional empty greys)
+        for (let i=0;i<7;i++){
             const d = document.createElement('div');
             d.className = 'palette-swatch grey';
             d.dataset.slot = i;
@@ -214,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (paletteEl) paletteEl.addEventListener('click', (ev) => {
         const tgt = ev.target;
         if (!tgt.classList.contains('palette-swatch')) return;
-        // Enter editing mode for this slot
         setEditingSwatch(tgt);
     });
     // addPaletteColor button removed — no UI for adding colors programmatically
@@ -276,13 +330,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 historyIndex++;
             }
             updateUndoRedoButtons();
+            // Mark that canvas has unsaved changes relative to lastSavedState
+            try { isDirty = (lastSavedState !== JSON.stringify(canvas.toJSON())); } catch(e) { isDirty = true; }
         } catch (e) {
             console.warn('Не удалось сохранить состояние:', e);
         }
     }
 
+    function markSaved() {
+        try {
+            lastSavedState = JSON.stringify(canvas.toJSON());
+            isDirty = false;
+        } catch(e) { isDirty = false; }
+    }
+
     function loadState(json) {
-        canvas.loadFromJSON(json, () => canvas.renderAll());
+        // Load canvas from JSON and normalize any frame image object created by the load
+        canvas.loadFromJSON(json, () => {
+            try {
+                // Try to find frame image: prefer object with explicit flag, otherwise heuristic
+                let found = canvas.getObjects().find(o => !!o.frameImage);
+                if (!found) {
+                    // fallback: choose the image that sits at the top-left and roughly fills the canvas
+                    const imgs = canvas.getObjects().filter(o => o.type === 'image');
+                    found = imgs.find(o => Math.abs((o.left || 0)) < 2 && Math.abs((o.top || 0)) < 2 && (o.getScaledWidth() >= canvas.getWidth() - 2 || o.getScaledHeight() >= canvas.getHeight() - 2));
+                    if (!found && imgs.length) found = imgs[0];
+                }
+                if (found) {
+                    frameImageObject = found;
+                    // ensure it's positioned and scaled to cover the canvas
+                    try {
+                        frameImageObject.set({ left: 0, top: 0, originX: 'left', originY: 'top' });
+                        const sx = canvas.getWidth() / (frameImageObject.width || frameImageObject.getScaledWidth());
+                        const sy = canvas.getHeight() / (frameImageObject.height || frameImageObject.getScaledHeight());
+                        frameImageObject.scaleX = sx;
+                        frameImageObject.scaleY = sy;
+                        frameImageObject.setCoords();
+                    } catch (e) { /* ignore per-object errors */ }
+                }
+            } catch (e) { console.warn('loadState normalize failed', e); }
+            canvas.renderAll();
+        });
     }
 
     function undo() {
@@ -306,8 +394,12 @@ document.addEventListener('DOMContentLoaded', () => {
         redoBtn.disabled = historyIndex >= history.length - 1;
     }
 
-    // Начальное состояние
-    saveState();
+    // Initial state will be saved after frame image loads (if any) or immediately
+    // Check if frame_id is NOT provided, then save initial empty state now
+    if (!frameId) {
+        saveState();
+    }
+    // If frameId is provided, saveState() will be called after image loads in loadFrameImage()
 
     // Текущий инструмент
     let currentTool = 'pencil';
@@ -340,6 +432,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function colorsMatchRGBA(a, b, tol) {
         tol = tol || 0;
         return Math.abs(a[0]-b[0]) <= tol && Math.abs(a[1]-b[1]) <= tol && Math.abs(a[2]-b[2]) <= tol && Math.abs(a[3]-b[3]) <= tol;
+    }
+
+    // Rasterize all canvas objects to background image, clearing objects
+    function rasterizeObjectsToBackground() {
+        if (canvas.getObjects().length === 0) return;
+        const dataURL = canvas.toDataURL({ format: 'png' });
+        canvas.clear();
+        canvas.setBackgroundImage(dataURL, canvas.renderAll.bind(canvas), {
+            originX: 'left', originY: 'top', width: canvas.width, height: canvas.height
+        });
     }
 
     // Pixel flood fill on the canvas raster. Uses canvas.contextContainer to read/write pixels.
@@ -444,11 +546,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = brushSizePreviewEl;
         if (!el) return;
         const diameter = Math.max(1, Math.min(200, parseInt(size, 10) || 1));
+        const alpha = getBrushAlpha();
         try {
             const circle = el;
             circle.style.width = diameter + 'px';
             circle.style.height = diameter + 'px';
-            circle.style.borderColor = primaryColor || 'rgba(0,0,0,0.6)';
+            circle.style.backgroundColor = hexToRgba(primaryColor || '#000000', alpha);
+            circle.style.borderColor = 'rgba(0,0,0,0.3)'; // optional, for visibility
         } catch(e) {}
     }
 
@@ -463,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupDrawingBrush() {
         const width = parseInt(brushSizeEl.value, 10);
         const color = getCurrentHex();
-        const alpha = (parseInt(opacityInput?.value || 100, 10) || 100) / 100;
+        const alpha = getBrushAlpha();
         const brush = canvas.freeDrawingBrush;
         brush.width = width;
         brush.color = (currentTool === 'eraser') ? (canvas.backgroundColor || '#ffffff') : hexToRgba(color, alpha);
@@ -550,17 +654,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fill tool uses click rather than drag
         if (currentTool === 'fill') {
             try {
+                // Create a raster snapshot of the current canvas (composed pixels)
+                // Do NOT clear the canvas immediately — generate the source image first to avoid
+                // removing visible objects (this previously caused the loaded drawing to disappear).
+                const sourceDataURL = canvas.toDataURL({ format: 'png' });
+
                 // Prepare fill color and tolerance
                 const hex = (colorPicker && colorPicker.color && colorPicker.color.hexString) ? colorPicker.color.hexString : '#000000';
-                const alpha = (parseInt(opacityInput?.value || 100, 10) || 100) / 100;
+                const alpha = getBrushAlpha();
                 const fillArr = hexToRgbaArray(hex, alpha);
-                const tolerance = 16; // allow some antialias tolerance
-
-                // We'll rasterize the canvas without vector objects (hide them), fill the raster offscreen,
-                // then set the resulting raster as the canvas background image, restoring objects on top.
-                // Rasterize the canvas with objects VISIBLE so stroke boundaries remain in the raster.
-                // Hiding objects here removes the very boundaries we need to constrain the fill.
-                const sourceDataURL = canvas.toDataURL({ format: 'png' });
+                const fillTolerance = 32; // adjustable tolerance for color matching (0-255)
+                const tolerance = fillTolerance;
 
                 // Draw the raster into an offscreen canvas and perform flood fill on its pixels
                 const tmp = document.createElement('canvas');
@@ -579,16 +683,30 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (sx < 0 || sy < 0 || sx >= tmp.width || sy >= tmp.height) {
                             return;
                         }
+                        // Perform fill on the offscreen ImageData
                         floodFillImageData(imgData, sx, sy, fillArr, tolerance);
                         tctx.putImageData(imgData, 0, 0);
 
-                        // Set the filled raster as the canvas background image so vector objects remain on top
+                        // Set the filled raster as the canvas background image.
+                        // Only after the background image is set we remove vector objects so the
+                        // user does not see the canvas briefly emptied.
                         const filledDataURL = tmp.toDataURL('image/png');
-                        canvas.setBackgroundImage(filledDataURL, canvas.renderAll.bind(canvas), {
+                        canvas.setBackgroundImage(filledDataURL, function() {
+                            try {
+                                // Remove all vector objects (they are now flattened into background)
+                                const objs = canvas.getObjects().slice();
+                                for (let i = 0; i < objs.length; i++) {
+                                    try { canvas.remove(objs[i]); } catch(e) {}
+                                }
+                                canvas.renderAll();
+                                // Save state after background image is updated and objects cleared
+                                saveState();
+                            } catch(e) {
+                                console.warn('apply filled background failed', e);
+                            }
+                        }, {
                             originX: 'left', originY: 'top', width: canvas.width, height: canvas.height
                         });
-                        // Save state after background image is updated
-                        saveState();
                     } catch(e) {
                         console.warn('fill processing failed', e);
                     }
@@ -740,27 +858,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Обновление кисти при изменении параметров
     brushSizeEl.addEventListener('input', (e) => {
-        if (weightInput) weightInput.value = e.target.value;
         setupDrawingBrush();
         // update preview
         try { updateSizePreview(e.target.value); } catch(e) {}
     });
-    if (weightInput) weightInput.addEventListener('input', (e) => {
-        const v = Math.max(1, Math.min(200, parseInt(e.target.value, 10) || 1));
-        brushSizeEl.value = v;
-        setupDrawingBrush();
-        try { updateSizePreview(v); } catch(e) {}
-    });
-    if (opacityInput) opacityInput.addEventListener('input', () => setupDrawingBrush());
+    if (brushOpacity) brushOpacity.addEventListener('input', () => { setupDrawingBrush(); updateSizePreview(brushSizeEl.value); });
 
     colorPicker.on('color:change', () => {
         if (colorWheelInitializing) return; // ignore initial programmatic change
         const hex = colorPicker.color.hexString;
         // If editing a palette swatch, update that swatch with the new color
         if (editingSwatch) {
-            editingSwatch.classList.remove('grey');
-            editingSwatch.dataset.color = hex;
             editingSwatch.style.background = hex;
+            editingSwatch.dataset.color = hex;
         }
         // Always update primaryColor so brush follows wheel
         primaryColor = hex;
@@ -771,8 +881,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Кнопки действий
     if (undoBtn) undoBtn.addEventListener('click', undo);
     if (redoBtn) redoBtn.addEventListener('click', redo);
-    
-    
+
+    // Keyboard shortcuts: Undo/Redo
+    // Support: Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (also Russian 'я'/'Я' key)
+    document.addEventListener('keydown', (e) => {
+        const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+        if (!isCtrlOrCmd) return;
+        const k = (e.key || '').toLowerCase();
+        if (k === 'z' || k === 'я') {
+            if (e.shiftKey) {
+                redo();
+            } else {
+                undo();
+            }
+            e.preventDefault();
+        }
+    });
+
     if (clearBtn) clearBtn.addEventListener('click', () => {
         canvas.clear();
         canvas.backgroundColor = '#ffffff';
@@ -782,15 +907,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (saveBtn) saveBtn.addEventListener('click', () => {
         const dataURL = canvas.toDataURL({ 
-            format: 'png', 
-            multiplier: 2 
+            format: 'png' 
         });
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = `drawing_${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const urlParams = new URLSearchParams(window.location.search);
+        const frameId = urlParams.get('frame_id');
+        if (frameId) {
+            // Save to database
+            const blob = dataURLToBlob(dataURL);
+            const formData = new FormData();
+            formData.append('file', blob, 'drawing.png');
+            fetch(`/api/frame/${frameId}/image`, {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    alert('Изображение сохранено в кадр!');
+                    // mark as saved
+                    try { markSaved(); } catch(e) {}
+                } else {
+                    alert('Ошибка сохранения');
+                }
+            }).catch(err => {
+                console.error('Save error:', err);
+                alert('Ошибка сохранения');
+            });
+        } else {
+            // Fallback: download
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = `drawing_${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
     });
 
     // Импорт изображения
@@ -869,6 +1018,83 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSwapUI();
         setupDrawingBrush();
     } catch (e) { /* ignore */ }
+
+    // Function to load frame image from server
+    async function loadFrameImage(frameId) {
+        try {
+            const response = await fetch(`/api/frame/${frameId}/image`);
+            if (!response.ok) {
+                console.warn('Frame image not found or not available');
+                return;
+            }
+            const blob = await response.blob();
+            const imgUrl = URL.createObjectURL(blob);
+            
+            fabric.Image.fromURL(imgUrl, function(img) {
+                // Set image to full canvas size to maintain original drawing scale
+                try {
+                    img.set({
+                        left: 0,
+                        top: 0,
+                        originX: 'left',
+                        originY: 'top',
+                        selectable: true,
+                        evented: true,
+                        // mark image as frame image so we can find it when loading state
+                        frameImage: true
+                    });
+                    // Stretch to fill canvas
+                    const sx = canvas.getWidth() / img.width;
+                    const sy = canvas.getHeight() / img.height;
+                    img.scaleX = sx;
+                    img.scaleY = sy;
+                    // keep a reference so we can resize on window resize
+                    frameImageObject = img;
+                    canvas.add(img);
+                    canvas.sendToBack(img);
+                    canvas.renderAll();
+                    // Save initial state including the loaded image
+                    // This becomes the base state, not an undoable action
+                    if (history.length === 0) {
+                        saveState();
+                        // The initial loaded image is considered 'saved' (no unsaved changes yet)
+                        markSaved();
+                    }
+                } catch(e) {
+                    console.warn('loading frame image failed', e);
+                    canvas.add(img);
+                    canvas.renderAll();
+                    if (history.length === 0) saveState();
+                }
+            });
+        } catch (error) {
+            console.error('Error loading frame image:', error);
+        }
+    }
+
+    // Exit button behavior and navigation protection
+    const exitBtn = document.getElementById('exit');
+    const exitUrl = 'http://127.0.0.1:8000/static/storyboard/index.html';
+    if (exitBtn) {
+        exitBtn.addEventListener('click', (ev) => {
+            try {
+                if (isDirty) {
+                    const ok = confirm('Есть несохранённые изменения. При выходе они будут потеряны. Продолжить?');
+                    if (!ok) return;
+                }
+                // navigate to storyboard
+                window.location.href = exitUrl;
+            } catch(e) { window.location.href = exitUrl; }
+        });
+    }
+
+    // Warn on page unload (back button / mouse back / closing tab)
+    window.addEventListener('beforeunload', function(e) {
+        if (!isDirty) return undefined;
+        const confirmationMessage = 'Есть несохранённые изменения. При выходе они будут потеряны.';
+        (e || window.event).returnValue = confirmationMessage; // Gecko + IE
+        return confirmationMessage; // Gecko + Webkit, Safari, Chrome
+    });
 
     // Object events disabled (no selection/interaction)
 });

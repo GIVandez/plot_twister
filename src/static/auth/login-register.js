@@ -144,22 +144,36 @@
       const u = username.value.trim();
       const p = password.value;
       let emptyFields = false;
-      let formatError = false;
 
       // empty field handling: mark red but do not show message
       if(u.length === 0){ markFieldError(qs('#usernameField', form), true); emptyFields = true; }
       if(p.length === 0){ markFieldError(qs('#passwordField', form), true); emptyFields = true; }
       if(emptyFields){ return; }
 
-      // format checks: accept either email or login for username
-      let loginIsEmail = u.indexOf('@') !== -1;
-      if(loginIsEmail){ if(!validEmail(u)) formatError = true; }
-      else{ if(!validLogin(u)) formatError = true; }
+      // Убрана строгая клиентская валидация формата — сервер сам проверит логин и пароль
 
-      if(p.length>20 || !validPassword(p)) formatError = true;
-
-      if(formatError){
-        // show single generic message
+      // Реальный вход через API
+      const loginData = { login: u, password: p };
+      
+      fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginData)
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => { throw new Error(err.detail || 'Ошибка входа'); });
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Сохраняем токен и логин в sessionStorage
+        sessionStorage.setItem('pt_access_token', data.access_token);
+        sessionStorage.setItem('pt_login', u);
+        // Перенаправляем на страницу личного кабинета
+        window.location.href = 'http://127.0.0.1:8000/user';
+      })
+      .catch(error => {
         errorsEl.textContent = 'Неверный логин или пароль';
         errorsEl.style.color = '#C30000';
         errorsEl.classList.add('show-error');
@@ -167,26 +181,9 @@
         markFieldError(qs('#passwordField', form), true);
         const hadShown = sessionStorage.getItem(autoShowKey);
         if(!hadShown){ toggle.show(); sessionStorage.setItem(autoShowKey,'1'); }
-        return;
-      }
+      });
 
-      // Simulate authentication: accept demo@example.com or demo as user with password 'Demo1234'
-      const uLow = u.toLowerCase();
-      const authOK = ( (uLow === 'demo' || uLow === 'demo@example.com') && p === 'Demo1234' );
-      if(!authOK){
-        errorsEl.textContent = 'Неверный логин или пароль';
-        errorsEl.style.color = '#C30000';
-        errorsEl.classList.add('show-error');
-        markFieldError(qs('#usernameField', form), true);
-        markFieldError(qs('#passwordField', form), true);
-        const hadShown = sessionStorage.getItem(autoShowKey);
-        if(!hadShown){ toggle.show(); sessionStorage.setItem(autoShowKey,'1'); }
-        return;
-      }
-
-      errorsEl.classList.remove('show-error');
-      errorsEl.style.color = 'green'; errorsEl.textContent = 'Вход (имитация) успешен.';
-      setTimeout(()=>{ errorsEl.classList.add('show-error'); }, 100);
+      return; // Прерываем дальнейшее выполнение, ждём ответа сервера
     });
 
     // clear errors while typing

@@ -38,9 +38,9 @@ function connectToPage(frameIndex) {
     if (!store) return;
     const frame = store.getFrameByIndex(frameIndex);
     
-    if (frame) {
+        if (frame) {
         if (frame.connectedPage) {
-            // Если уже привязана - открываем страницу
+            // Если уже привязана - открываем страницу (передаём ID страницы)
             if (window.openScriptPage) {
                 window.openScriptPage(frame.connectedPage, frameIndex);
             } else {
@@ -60,7 +60,9 @@ function connectToPage(frameIndex) {
                     const pageExists = !!store.getPageText(pageNum);
                     
                     if (pageExists) {
-                        store.setFrameValuesByIndex(frameIndex, { connectedPage: pageNum });
+                        // Store DB id, not display number
+                        const pid = store && typeof store.getPageIdByNumber === 'function' ? store.getPageIdByNumber(pageNum) : null;
+                        store.setFrameValuesByIndex(frameIndex, { connectedPage: pid !== null ? pid : pageNum });
                         
                         if (window.renderFrames) {
                             window.renderFrames();

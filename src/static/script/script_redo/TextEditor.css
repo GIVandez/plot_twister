@@ -47,13 +47,15 @@ body {
 	background-color: var(--bg-color);
 	color: var(--text-color);
 	height: 100vh;
-	overflow: hidden;
+	/* allow the page to scroll when content grows */
+	overflow: auto;
 	transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .editor-container {
 	display: flex;
-	height: 100vh;
+	/* allow the container to grow when content grows; keep at least viewport height */
+	min-height: 100vh;
 }
 
 /* Left Toolbar */
@@ -64,17 +66,27 @@ body {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding: 20px 10px;
-	overflow-y: auto;
+	/* padding removed per UI update */
+	/* make toolbar fixed to the left of the viewport */
+	position: fixed;
+	left: 0;
+	top: 0;
+	height: 100vh;
+	height: 100dvh;
+	overflow: hidden;
+	z-index: 1000;
 	transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .toolbar-buttons {
 	display: flex;
 	flex-direction: column;
-    align-items: center;
+	align-items: center;
 	gap: 6px;
 	width: 100%;
+	/* ensure this block does not create internal scroll — keep it static */
+	overflow: visible;
+	max-height: none;
 }
 
 .theme-buttons-row {
@@ -131,12 +143,12 @@ body {
 }
 
 .page-info {
-	margin-top: 40px;
 	width: 100%;
 	display: flex;
 	flex-direction: column;
 	gap: 15px;
 	align-items: center;
+	margin-top: 8px;
 }
 
 .page-number {
@@ -185,6 +197,30 @@ body {
 	transform: scale(0.95);
 }
 
+/* Exit button (next to Save) */
+.exit-btn {
+	width: 100px;
+	height: 40px;
+	background-color: #dc3545;
+	border: none;
+	color: #ffffff;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 16px;
+	font-weight: bold;
+	transition: all 0.2s ease;
+	margin-top: 8px;
+}
+
+.exit-btn:hover {
+	background-color: #c82333;
+	transform: scale(1.02);
+}
+
+.exit-btn:active {
+	transform: scale(0.97);
+}
+
 /* Main Content Area */
 .content-area {
 	flex: 1;
@@ -193,28 +229,38 @@ body {
 	align-items: center;
 	justify-content: flex-start;
 	padding: 40px;
-	overflow: auto;
+	/* allow children to expand; page (body) will scroll */
+	overflow: visible;
 	background-color: var(--bg-color);
 	transition: background-color 0.3s ease;
+	/* leave space for the fixed toolbar */
+	margin-left: 120px;
 }
 
 .page-content {
 	width: 100%;
-    max-width: 900px;
-    min-height: 700px;
-    background-color: var(--page-bg);
-    border: 1px solid var(--page-border);
-    padding: 40px;
-    border-radius: 8px;
-    color: var(--page-text);
-    font-size: 16px;
-    line-height: 1.6;
-    outline: none;
-    text-align: left;
-    word-wrap: break-word;
-    overflow-y: auto;
-    resize: none;
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+	max-width: 900px;
+	/* allow content area to grow with text */
+	min-height: auto;
+	height: auto;
+	background-color: var(--page-bg);
+	border: 1px solid var(--page-border);
+	padding: 40px;
+	border-radius: 8px;
+	color: var(--page-text);
+	font-size: 16px;
+	line-height: 1.6;
+	outline: none;
+	text-align: left;
+	word-wrap: break-word;
+	overflow: visible;
+	resize: none;
+	transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Ensure the editable text element has a sensible minimum height */
+#textContent {
+	min-height: 613px;
 }
 
 .page-content.page-light {

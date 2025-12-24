@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
         pageNumbers.forEach((pn, idx) => pageIndexMap[pn] = idx);
     }
 
+    // Ensure currentProjectId is initialized from URL query if not set
+    if (!window.currentProjectId) {
+        const params = new URLSearchParams(window.location.search || window.location.hash.replace(/^\?/, ''));
+        const pid = params.get('project') || params.get('projectId');
+        if (pid) window.currentProjectId = pid;
+    }
+
     // Helper: load pages from API and initialize local structures
     async function loadPagesFromApi() {
         const projectId = window.currentProjectId || 1;
@@ -158,7 +165,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (thisPageNum === activePageNum) {
                     // open the text editor for this page (pass page number and id)
                     const pid = numberToId[thisPageNum] || '';
-                    window.location.href = `script_redo/TextEditor.html?pageNum=${thisPageNum}&pageId=${pid}`;
+                    // Navigate to server route `/text-editor` and pass pageId (and pageNum for UI)
+                    const qs = new URLSearchParams();
+                    if (pid) qs.set('pageId', String(pid));
+                    qs.set('pageNum', String(thisPageNum));
+                    window.location.href = `/text-editor?${qs.toString()}`;
                 } else {
                     // if clicked card isn't centered yet, navigate to it
                     const clickedIdx = pageNumbers.indexOf(thisPageNum);
