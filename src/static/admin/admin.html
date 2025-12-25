@@ -1,121 +1,12 @@
 <!doctype html>
 <html lang="ru">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width,initial-scale=1">
-	<title>Администрирование — PlotTwister</title>
-	<link rel="stylesheet" href="/admin/admin.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Администрация — перенаправление</title>
+  <meta http-equiv="refresh" content="0;url=/admin/admin.html">
 </head>
 <body>
-	<div class="admin-container">
-		<!-- Left Panel: Users List -->
-		<aside class="users-panel">
-			<h2 class="panel-title">Пользователи</h2>
-			<div class="search-box">
-				<input type="text" id="userSearch" placeholder="Поиск по логину..." autocomplete="off">
-			</div>
-			<div class="users-list" id="usersList">
-				<!-- User blocks will be rendered here -->
-			</div>
-		</aside>
-
-		<!-- Right Panel: User Details -->
-		<main class="details-panel" id="detailsPanel">
-			<div class="details-placeholder" id="detailsPlaceholder">
-				<p>Выберите пользователя для просмотра информации</p>
-				<button class="btn btn-back" id="detailBackBtnPlaceholder">Вернуться в личный аккаунт</button>
-			</div>
-			<div class="details-content" id="detailsContent" style="display:none;">
-				<div class="details-header">
-					<h2 class="details-title">Информация о пользователе</h2>
-					<div class="details-actions">
-					<button class="btn btn-delete" id="detailDeleteBtn">Удалить аккаунт</button>
-					<button class="btn btn-admin" id="detailGiveAdminBtn">Выдать роль admin</button>
-					<button class="btn btn-user" id="detailRemoveAdminBtn">Выдать роль user</button>
-					<button class="btn btn-back" id="detailBackBtn">Вернуться в личный аккаунт</button>
-					</div>
-				</div>
-				<div class="user-info">
-					<div class="info-avatar" id="detailAvatar">PT</div>
-					<div class="info-meta">
-						<div class="info-login" id="detailLogin">username</div>
-						<div class="info-email" id="detailEmail">user@example.com</div>
-						<div class="info-projects-count">Количество проектов: <span id="detailProjectsCount">0</span></div>
-					</div>
-				</div>
-				<div class="projects-section">
-					<h3>Проекты пользователя</h3>
-					<div class="projects-grid" id="detailProjectsGrid">
-						<!-- Project tiles will be rendered here -->
-					</div>
-				</div>
-			</div>
-		</main>
-	</div>
-
-	<!-- Email Modal -->
-	<div class="overlay" id="emailOverlay" aria-hidden="true">
-		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="emailModalTitle">
-			<h3 id="emailModalTitle">Отправить письмо</h3>
-			<div class="form-group">
-				<label>Кому:</label>
-				<input type="email" id="emailTo" readonly>
-			</div>
-			<div class="form-group">
-				<label>Тема:</label>
-				<input type="text" id="emailSubject" placeholder="Тема письма">
-			</div>
-			<div class="form-group">
-				<label>Сообщение:</label>
-				<textarea id="emailMessage" rows="5" placeholder="Введите текст сообщения..."></textarea>
-			</div>
-			<div class="modal-actions">
-				<button class="btn btn-cancel" id="emailCancel">Отмена</button>
-				<button class="btn btn-email" id="emailSend">Отправить</button>
-			</div>
-		</div>
-	</div>
-
-	<!-- Delete User Modal -->
-	<div class="overlay" id="deleteUserOverlay" aria-hidden="true">
-		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteUserModalTitle">
-			<h3 id="deleteUserModalTitle">Удаление пользователя</h3>
-			<p class="warning-text">Перед удалением необходимо указать причину. Письмо будет отправлено на почту пользователя.</p>
-			<div class="form-group">
-				<label>Почта пользователя:</label>
-				<input type="email" id="deleteUserEmail" readonly>
-			</div>
-			<div class="form-group">
-				<label>Причина удаления:</label>
-				<textarea id="deleteUserReason" rows="4" placeholder="Укажите причину удаления аккаунта..."></textarea>
-			</div>
-			<div class="modal-actions">
-				<button class="btn btn-cancel" id="deleteUserCancel">Отмена</button>
-				<button class="btn btn-delete" id="deleteUserConfirm" disabled>Удалить</button>
-			</div>
-		</div>
-	</div>
-
-	<!-- Delete Project Modal -->
-	<div class="overlay" id="deleteProjectOverlay" aria-hidden="true">
-		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteProjectModalTitle">
-			<h3 id="deleteProjectModalTitle">Удаление проекта</h3>
-			<p class="warning-text">Перед удалением необходимо указать причину. Письмо будет отправлено владельцу проекта.</p>
-			<div class="form-group">
-				<label>Почта владельца:</label>
-				<input type="email" id="deleteProjectEmail" readonly>
-			</div>
-			<div class="form-group">
-				<label>Причина удаления:</label>
-				<textarea id="deleteProjectReason" rows="4" placeholder="Укажите причину удаления проекта..."></textarea>
-			</div>
-			<div class="modal-actions">
-				<button class="btn btn-cancel" id="deleteProjectCancel">Отмена</button>
-				<button class="btn btn-delete" id="deleteProjectConfirm" disabled>Удалить</button>
-			</div>
-		</div>
-	</div>
-
-	<script src="/admin/admin.js"></script>
+  <p>Если вы не перенаправлены автоматически, перейдите по ссылке: <a href="/admin/admin.html">/admin/admin.html</a></p>
 </body>
 </html>

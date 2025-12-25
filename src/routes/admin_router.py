@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Request
+from fastapi import APIRouter, HTTPException, status, Request, Depends
 from fastapi.responses import FileResponse
 from dto.admin_dto import (
     DropAdminRequest, DeleteAdminProjectRequest, LoadUsersAccountsResponse,
@@ -19,8 +19,18 @@ db_repo = DatabaseRepository()
 Session = sessionmaker(bind=engine)
 
 
+def require_admin(request: Request):
+    """Dependency: allow only users with role 'admin'."""
+    login = request.cookies.get('pt_login')
+    if not login:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Не авторизован")
+    user_info = db_repo.read_user_info(login)
+    if not user_info or user_info.get('role') != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Доступ запрещён")
+    return login
+
 @router.delete("/api/admin/dropAdmin")
-async def drop_admin(request: DropAdminRequest):
+async def drop_admin(request: DropAdminRequest, admin_login: str = Depends(require_admin)):
     """Снятие роли администратора"""
     try:
         # Проверяем существование пользователя
@@ -64,7 +74,7 @@ async def drop_admin(request: DropAdminRequest):
 
 
 @router.delete("/api/admin/project/deleteProject")
-async def admin_delete_project(request: DeleteAdminProjectRequest):
+async def admin_delete_project(request: DeleteAdminProjectRequest, admin_login: str = Depends(require_admin)):
     """Удаление админом проекта"""
     try:
         # Проверяем существование проекта
@@ -93,7 +103,7 @@ async def admin_delete_project(request: DeleteAdminProjectRequest):
 
 
 @router.get("/api/admin/user/loadUsersAccounts", response_model=LoadUsersAccountsResponse)
-async def load_users_accounts():
+async def load_users_accounts(admin_login: str = Depends(require_admin)):
     """Загрузка аккаунтов всех пользователей веб-приложения"""
     try:
         session = Session()
@@ -120,7 +130,7 @@ async def load_users_accounts():
 
 
 @router.delete("/api/admin/user/deleteAccount")
-async def admin_delete_account(request: DeleteAccountRequest):
+async def admin_delete_account(request: DeleteAccountRequest, admin_login: str = Depends(require_admin)):
     """Удаление админом пользователя"""
     try:
         # Проверяем существование пользователя
@@ -151,7 +161,7 @@ async def admin_delete_account(request: DeleteAccountRequest):
 
 
 @router.post("/api/admin/user/upgradeAccount")
-async def upgrade_account(request: UpgradeAccountRequest):
+async def upgrade_account(request: UpgradeAccountRequest, admin_login: str = Depends(require_admin)):
     """Повышение пользователя до администратора"""
     try:
         # Проверяем существование пользователя
@@ -225,7 +235,7 @@ async def load_admin_page(request: Request):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Доступ запрещён")
 
         current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        file_path = os.path.join(current_dir, "static", "admin", "admin.html")
+        file_path = os.path.join(current_dir, "private", "admin", "admin.html")
         return FileResponse(path=file_path)
     except HTTPException:
         raise

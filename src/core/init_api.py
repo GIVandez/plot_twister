@@ -37,7 +37,7 @@ app.include_router(user_router.router)
 
 # Монтируем папку стилей и скриптов (статические файлы)
 app.mount("/account", StaticFiles(directory=f"{current_dir}/static/account"), name="account")
-app.mount("/admin", StaticFiles(directory=f"{current_dir}/static/admin"), name="admin")
+# Direct mounting of '/admin' removed to ensure admin HTML is served via protected route
 app.mount("/script", StaticFiles(directory=f"{current_dir}/static/script"), name="script")
 app.mount("/storyboard", StaticFiles(directory=f"{current_dir}/static/storyboard"), name="storyboard")
 app.mount("/auth", StaticFiles(directory=f"{current_dir}/static/auth"), name="auth")

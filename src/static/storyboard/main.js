@@ -20,6 +20,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.href = 'http://127.0.0.1:8000/auth/login.html';
                 return false;
             }
+            // First check role — admins can access any project
+            try {
+                const roleResp = await fetch(`/api/users/${encodeURIComponent(login)}/info`);
+                if (roleResp.ok) {
+                    const info = await roleResp.json();
+                    if (info && info.role && String(info.role).toLowerCase() === 'admin') {
+                        return true;
+                    }
+                }
+            } catch (e) {
+                // ignore role check errors and continue with ownership verification
+                console.warn('role check failed', e);
+            }
+
             const resp = await fetch(`/api/users/${encodeURIComponent(login)}/loadInfo`);
             if (!resp.ok) {
                 return false;

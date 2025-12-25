@@ -52,8 +52,8 @@ class PagesManager {
     showNotFoundPage(pageId) {
         const pageContent = document.getElementById('pageContent');
         const store = window.storyboardStore;
-        const available = store ? store.getPageNumbers().join(', ') : '';
-        pageContent.innerHTML = `Страница с ID ${pageId} не найдена.\n\nДоступные страницы: ${available}`;
+        // If page not found — leave content empty (do not show error message)
+        pageContent.innerHTML = '';
         this.showPageSection();
     }
 }

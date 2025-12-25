@@ -85,6 +85,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = 'http://127.0.0.1:8000/auth/login.html';
                 return;
             }
+            // First check role — if admin, allow loading pages for any project
+            try {
+                const roleResp = await fetch(`/api/users/${encodeURIComponent(login)}/info`);
+                if (roleResp.ok) {
+                    const info = await roleResp.json();
+                    if (info && info.role && String(info.role).toLowerCase() === 'admin') {
+                        // Admin — directly load pages without ownership check
+                        loadPagesFromApi();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('role check failed', e);
+                // continue with ownership verification
+            }
+
             const resp = await fetch(`/api/users/${encodeURIComponent(login)}/loadInfo`);
             if(!resp.ok){
                 alert('Не удалось проверить доступ к проекту.');
