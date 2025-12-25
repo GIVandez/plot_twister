@@ -390,6 +390,14 @@
 				menuDropdown.classList.remove('open');
 			});
 
+			// Навигация в страницу проекта при клике по плитке (если клик не по меню)
+			tile.addEventListener('click', (ev) => {
+				if (ev.target.closest('.proj-menu-btn') || ev.target.closest('.proj-menu-dropdown')) return;
+				// Передаём также имя проекта — пригодится, когда admin открывает чужой проект
+				const nameParam = project.name ? '&projectName=' + encodeURIComponent(project.name) : '';
+				window.location.href = '/project/ProjectMainPage.html?projectId=' + encodeURIComponent(project.id) + nameParam;
+			});
+
 			detailProjectsGrid.appendChild(tile);
 		});
 	}

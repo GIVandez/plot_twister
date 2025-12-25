@@ -12,8 +12,13 @@
       const pid = qs.get('projectId');
       if(!pid) return;
       PROJECT_ID = pid;
+      // If caller passed projectName (e.g. admin view), use it immediately
+      try{
+        const passedName = qs.get('projectName');
+        if(passedName && titleInput){ titleInput.value = passedName; document.title = (passedName||'Проект') + ' — PlotTwister'; }
+      }catch(e){ /* ignore */ }
 
-      // Verify ownership: ensure current user owns this project
+      // Verify ownership: ensure current user owns this project (admins bypass this check)
       (async function verifyOwnership(){
         try{
           const login = sessionStorage.getItem('pt_login') || localStorage.getItem('pt_login');
@@ -22,6 +27,23 @@
             window.location.href = 'http://127.0.0.1:8000/auth/login.html';
             return;
           }
+
+          // First, check role — admins are allowed to open any project
+          try {
+            const roleResp = await fetch(`/api/users/${encodeURIComponent(login)}/info`);
+            if (roleResp.ok) {
+              const info = await roleResp.json();
+              if (info && info.role && String(info.role).toLowerCase() === 'admin') {
+                // Admins allowed — skip ownership check
+                return;
+              }
+            }
+          } catch (e) {
+            // ignore role check errors and continue with ownership verification
+            console.warn('role check failed', e);
+          }
+
+          // Non-admins: verify that the project is listed for this user
           const resp = await fetch(`/api/users/${encodeURIComponent(login)}/loadInfo`);
           if(!resp.ok){
             // If request failed or returns 204 (no projects) deny access
