@@ -29,6 +29,7 @@
   const userLogin = document.getElementById('userLogin');
   const logoutBtn = document.getElementById('logoutBtn');
   const moderationBtn = document.getElementById('moderationBtn');
+  const deleteAccountBtn = document.getElementById('deleteAccountBtn');
 
   const initialCreate = document.getElementById('initialCreate'); // центральная карточка создания (когда нет проектов)
   const projectsGrid = document.getElementById('projectsGrid'); // сетка проектов
@@ -286,6 +287,80 @@
       try { localStorage.removeItem('pt_projects'); } catch(e){}
       // Redirect to login page
       window.location.href = '/auth/login.html';
+    });
+  }
+
+  // Delete account handler: call API to delete this user, then clear storage and redirect to index
+  if (deleteAccountBtn) {
+    deleteAccountBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const ok = confirm('Удалить аккаунт? Это действие необратимо.');
+      if (!ok) return;
+
+      // 1) Получаем список проектов пользователя с сервера
+      try {
+        const login = user.login;
+        if (!login) { alert('Не удалось определить пользователя. Перезайдите.'); return; }
+
+        const projResp = await fetch('/api/users/' + encodeURIComponent(login) + '/loadInfo');
+        if (projResp.status === 204) {
+          // нет проектов, продолжаем
+        } else if (!projResp.ok) {
+          const j = await projResp.json().catch(()=>null);
+          const msg = j && (j.detail || j.message) ? (j.detail || j.message) : ('Ошибка: ' + projResp.status);
+          alert('Не удалось получить список проектов: ' + msg);
+          return;
+        } else {
+          const data = await projResp.json().catch(()=>null);
+          const projectsOnServer = (data && Array.isArray(data.projects)) ? data.projects : [];
+          // Удаляем проекты по одному; если какой-то не удалился — прерываем
+          for (const p of projectsOnServer) {
+            try {
+              const delResp = await fetch('/api/user/deleteProject', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: p.project_id })
+              });
+              if (!delResp.ok) {
+                const dj = await delResp.json().catch(()=>null);
+                const dmsg = dj && (dj.detail || dj.message) ? (dj.detail || dj.message) : ('Ошибка: ' + delResp.status);
+                alert('Не удалось удалить проект "' + (p.project_name || p.project_id) + '": ' + dmsg + '. Операция отменена.');
+                return;
+              }
+            } catch (err) {
+              console.error('Failed to delete project', err);
+              alert('Ошибка при удалении проекта: ' + (err.message || 'сетевая ошибка') + '. Операция отменена.');
+              return;
+            }
+          }
+        }
+
+        // 2) Удаляем сам аккаунт
+        const resp = await fetch('/api/user/deleteUser', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login: login })
+        });
+        if (!resp.ok) {
+          const j = await resp.json().catch(()=>null);
+          const msg = j && (j.detail || j.message) ? (j.detail || j.message) : ('Ошибка: ' + resp.status);
+          alert('Не удалось удалить аккаунт: ' + msg);
+          return;
+        }
+
+        // On success clear storage and redirect to index
+        try { sessionStorage.removeItem('pt_access_token'); } catch(e){}
+        try { sessionStorage.removeItem('pt_login'); } catch(e){}
+        try { localStorage.removeItem('pt_login'); } catch(e){}
+        try { localStorage.removeItem('pt_email'); } catch(e){}
+        try { localStorage.removeItem('pt_avatar'); } catch(e){}
+        try { localStorage.removeItem('pt_projects'); } catch(e){}
+
+        window.location.href = 'http://127.0.0.1:8000/';
+      } catch (err) {
+        console.error('Delete account failed', err);
+        alert('Не удалось удалить аккаунт: ' + (err.message || 'сетевая ошибка'));
+      }
     });
   }
 
