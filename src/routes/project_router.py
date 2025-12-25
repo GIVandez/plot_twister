@@ -383,7 +383,7 @@ async def disconnect_frame_page(request: DisconnectFramePageRequest):
 
 
 @router.get("/project_test")
-async def load_start_page():
+async def load_test_page():
     current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     file_path = os.path.join(current_dir, "static", "project", "api_test.html")
     return FileResponse(path=file_path)
@@ -392,7 +392,13 @@ async def load_start_page():
 # TODO: API?
 
 @router.get("/project")
-async def load_start_page():
+async def load_project_page():
     current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     file_path = os.path.join(current_dir, "static", "project", "ProjectMainPage.html")
+    return FileResponse(path=file_path)
+
+@router.get("/")
+async def load_start_page():
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(current_dir, "static", "index.html")
     return FileResponse(path=file_path)
