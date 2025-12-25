@@ -851,3 +851,77 @@ window.addEventListener('undoStackChanged', () => {
     // небольшая отложенная синхронизация на случай асинхронных sync-операций
     setTimeout(refreshOpenFrameInfoFromStore, 50);
 });
+
+// Обновляем изображение в открытой панели информации о кадре (например, после редактирования в GraphicEditor)
+function _cacheBustedUrlForFrame(frameId) {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const cb = window._frameCacheBustTs || params.get('_cb');
+        if (cb) return `/api/frame/${frameId}/image` + (cb ? ( ( '?' + '_cb=' + encodeURIComponent(cb) ) ) : '');
+    } catch (e) { /* ignore */ }
+    return `/api/frame/${frameId}/image`;
+}
+
+function refreshOpenFrameInfoFromStore() {
+    try {
+        const infoDisplay = document.querySelector('.frame-info-display');
+        if (!infoDisplay) return;
+        const store = window.storyboardStore;
+        if (!store) return;
+        const fid = infoDisplay.dataset && infoDisplay.dataset.frameId ? infoDisplay.dataset.frameId : null;
+        if (!fid) return;
+        const frame = store.getFrameById(fid);
+        if (!frame) return;
+
+        // Обновляем изображение (если необходима замена cache-bust параметра)
+        try {
+            const imgEl = infoDisplay.querySelector('.frame-image-info');
+            const newUrl = _cacheBustedUrlForFrame(frame.id);
+            if (imgEl) {
+                if (imgEl.tagName && imgEl.tagName.toLowerCase() === 'img') {
+                    // Меняем src, добавляем небольшой таймаут чтобы браузер успел перезагрузить
+                    imgEl.src = newUrl;
+                } else {
+                    // fallback div — заменим на <img>
+                    const newImg = document.createElement('img');
+                    newImg.className = 'frame-image-info visible';
+                    newImg.alt = '';
+                    newImg.src = newUrl;
+                    // клик по изображению — перейти в редактор
+                    newImg.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        try {
+                            const params = new URLSearchParams(window.location.search);
+                            const cb = params.get('_cb');
+                            const extra = cb ? `&_cb=${encodeURIComponent(cb)}` : '';
+                            window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frame.id}${extra}`;
+                        } catch(e) {
+                            window.location.href = `/static/graphiceditor/GraphicEditor.html?frame_id=${frame.id}`;
+                        }
+                    });
+                    imgEl.replaceWith(newImg);
+                }
+            }
+        } catch (e) { /* ignore image update errors */ }
+
+        // Обновляем описание
+        const descInfo = infoDisplay.querySelector('.frame-description-info');
+        if (descInfo) {
+            descInfo.dataset.fullText = frame.description || '';
+            descInfo.innerHTML = formatDescription(frame.description || '');
+        }
+
+        // Обновляем время начала/конца в панели
+        const timeStartBtn = infoDisplay.querySelector('.frame-control-btn.time-start');
+        const timeEndBtn = infoDisplay.querySelector('.frame-control-btn.time-end');
+        if (timeStartBtn) timeStartBtn.textContent = formatTime(frame.start);
+        if (timeEndBtn) timeEndBtn.textContent = formatTime(frame.end);
+
+    } catch (e) {
+        // ignore
+        console.error('refreshOpenFrameInfoFromStore error', e);
+    }
+}
+
+// Экспортируем функцию чтобы другие модули могли её вызывать
+window.refreshOpenFrameInfoFromStore = refreshOpenFrameInfoFromStore;

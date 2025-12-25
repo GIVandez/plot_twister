@@ -430,6 +430,8 @@
       if (!ok) return false;
       try { window._frameCacheBustTs = obj.ts || Date.now(); } catch(e) {}
       if (window.renderFrames) window.renderFrames();
+      // Also refresh the open frame info panel (if present) so its image updates
+      try { if (window.refreshOpenFrameInfoFromStore) window.refreshOpenFrameInfoFromStore(); } catch(e) { /* ignore */ }
       // Clear signal so it doesn't trigger again
       try { localStorage.removeItem('frame_updated'); } catch(e) {}
       return true;
