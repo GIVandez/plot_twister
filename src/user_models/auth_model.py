@@ -41,7 +41,7 @@ class AuthModel:
         
         return auth_token
     
-    def register(self, username: str, password: str, email: str) -> Optional[int]:
+    def register(self, username: str, password: str) -> Optional[int]:
         """
         Проверяет отсутствие логина пользователя в таблице user, 
         в случае успеха создает новую запись о пользователе
@@ -49,7 +49,6 @@ class AuthModel:
         Args:
             username: логин пользователя
             password: пароль пользователя
-            email: email пользователя
         
         Returns:
             auth_token: int - токен авторизации в случае успеха
@@ -60,7 +59,7 @@ class AuthModel:
             return None  # Учетная запись уже существует
         
         # Создаем новую учетную запись
-        success = self.db.create_user(username, password, email)
+        success = self.db.create_user(username, password, '')
         if not success:
             return None
         

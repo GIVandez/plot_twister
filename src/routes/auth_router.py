@@ -41,7 +41,7 @@ async def login(request: LoginRequest):
 async def register(request: RegisterRequest):
     """Регистрация пользователя"""
     try:
-        result = auth_model.register(request.login, request.password, request.email)
+        result = auth_model.register(request.login, request.password)
         
         if result is None:
             raise HTTPException(

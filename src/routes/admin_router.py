@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from fastapi.responses import FileResponse
 from dto.admin_dto import (
     DropAdminRequest, DeleteAdminProjectRequest, LoadUsersAccountsResponse,
@@ -106,7 +106,7 @@ async def load_users_accounts():
                     detail="Пользователи не найдены"
                 )
             
-            user_list = [UserInfo(login=user.login) for user in users]
+            user_list = [UserInfo(login=user.login, email=user.email if hasattr(user, 'email') else None) for user in users]
             return LoadUsersAccountsResponse(users=user_list)
         finally:
             session.close()
@@ -208,3 +208,26 @@ async def load_start_page():
     current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     file_path = os.path.join(current_dir, "static", "account", "admin.html")
     return FileResponse(path=file_path)
+
+
+@router.get("/admin/admin.html")
+async def load_admin_page(request: Request):
+    """Serve admin page only to users with role 'admin'."""
+    try:
+        # Try to read login from cookies (set by client on login)
+        login = request.cookies.get('pt_login')
+        if not login:
+            # No login cookie — deny
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Не авторизован")
+
+        user_info = db_repo.read_user_info(login)
+        if not user_info or user_info.get('role') != 'admin':
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Доступ запрещён")
+
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        file_path = os.path.join(current_dir, "static", "admin", "admin.html")
+        return FileResponse(path=file_path)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Внутренняя ошибка сервера: {str(e)}")

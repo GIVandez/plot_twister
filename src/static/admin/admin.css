@@ -245,18 +245,33 @@ body {
 	border-radius: 12px;
 	padding: 24px;
 	overflow-y: auto;
+	/* Hide visible scrollbar but keep scrolling functional */
+	-ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
+}
+
+.details-panel::-webkit-scrollbar { /* Chrome, Safari */
+	width: 0px;
+	height: 0px;
+}
 }
 
 .details-placeholder {
 	height: 100%;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	gap: 20px;
 }
 
 .details-placeholder p {
 	color: var(--text-secondary);
 	font-size: 16px;
+}
+
+.details-placeholder .btn {
+	margin-top: 10px;
 }
 
 .details-header {
@@ -514,6 +529,24 @@ body {
 
 .btn-cancel:hover {
 	background-color: var(--btn-cancel-hover);
+}
+
+.btn-admin {
+	background-color: #27ae60;
+	color: var(--text-primary);
+}
+
+.btn-admin:hover {
+	background-color: #2ecc71;
+}
+
+.btn-user {
+	background-color: #3498db;
+	color: var(--text-primary);
+}
+
+.btn-user:hover {
+	background-color: #5dade2;
 }
 
 /* ===== Modal Overlay ===== */

@@ -18,11 +18,19 @@
 	 * @returns {Promise<Array>} Массив пользователей
 	 */
 	async function fetchAllUsers() {
-		// TODO: Заменить на реальный API запрос
-		// return await fetch('/api/users').then(r => r.json());
-		
-		// Временные локальные данные для тестирования
-		return getMockUsers();
+		try{
+			const resp = await fetch('/api/admin/user/loadUsersAccounts');
+			if(!resp.ok){
+				console.warn('fetchAllUsers: API returned', resp.status);
+				return getMockUsers();
+			}
+			const data = await resp.json();
+			// data.users -> [{ login, email }]
+			return (data.users || []).map(u => ({ id: u.login, login: u.login, email: u.email || '', avatar: null }));
+		}catch(e){
+			console.error('fetchAllUsers failed', e);
+			return getMockUsers();
+		}
 	}
 
 	/**
@@ -31,11 +39,17 @@
 	 * @returns {Promise<Array>} Массив проектов
 	 */
 	async function fetchUserProjects(userId) {
-		// TODO: Заменить на реальный API запрос
-		// return await fetch(`/api/users/${userId}/projects`).then(r => r.json());
-		
-		// Временные локальные данные
-		return getMockProjects(userId);
+		try{
+			const resp = await fetch(`/api/users/${encodeURIComponent(userId)}/loadInfo`);
+			if(resp.status === 204) return [];
+			if(!resp.ok) { console.warn('fetchUserProjects: API error', resp.status); return getMockProjects(userId); }
+			const data = await resp.json();
+			// data.projects -> [{ project_id, project_name }]
+			return (data.projects || []).map(p => ({ id: String(p.project_id), name: p.project_name, image: null }));
+		}catch(e){
+			console.error('fetchUserProjects failed', e);
+			return getMockProjects(userId);
+		}
 	}
 
 	/**
@@ -65,14 +79,27 @@
 	 * @returns {Promise<boolean>} Успешность операции
 	 */
 	async function deleteProject(projectId, reason) {
-		// TODO: Заменить на реальный API запрос
-		// return await fetch(`/api/projects/${projectId}`, { 
-		//     method: 'DELETE', 
-		//     body: JSON.stringify({ reason }) 
-		// }).then(r => r.ok);
-		
+		// Попробуем удалить через серверный API (админский endpoint)
 		console.log(`[API] Удаление проекта ${projectId}, причина: ${reason}`);
-		// Удаляем из локальных данных
+		const numericId = Number(projectId);
+		if (!Number.isNaN(numericId)) {
+			try {
+				const resp = await fetch('/api/admin/project/deleteProject', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ project_id: numericId })
+				});
+				if (!resp.ok) {
+					console.warn('deleteProject API returned', resp.status);
+					return false;
+				}
+				return true;
+			} catch (e) {
+				console.error('deleteProject API failed', e);
+				// fall through to mock deletion
+			}
+		}
+		// Если ID не числовой или API недоступен — удаляем из mock-данных
 		for (const userId in mockProjects) {
 			mockProjects[userId] = mockProjects[userId].filter(p => p.id !== projectId);
 		}
@@ -165,8 +192,11 @@
 	const detailEmail = document.getElementById('detailEmail');
 	const detailProjectsCount = document.getElementById('detailProjectsCount');
 	const detailProjectsGrid = document.getElementById('detailProjectsGrid');
-	const detailEmailBtn = document.getElementById('detailEmailBtn');
+	const detailBackBtn = document.getElementById('detailBackBtn');
 	const detailDeleteBtn = document.getElementById('detailDeleteBtn');
+	const detailGiveAdminBtn = document.getElementById('detailGiveAdminBtn');
+	const detailRemoveAdminBtn = document.getElementById('detailRemoveAdminBtn');
+	const detailBackBtnPlaceholder = document.getElementById('detailBackBtnPlaceholder');
 
 	// Email Modal
 	const emailOverlay = document.getElementById('emailOverlay');
@@ -199,6 +229,7 @@
 	let selectedUserProjects = [];
 	let pendingDeleteUserId = null;
 	let pendingDeleteProjectId = null;
+	const currentLogin = sessionStorage.getItem('pt_login');
 
 	// =========================================================================
 	// RENDER FUNCTIONS
@@ -263,7 +294,8 @@
 				if (action === 'email') {
 					openEmailModal(user.email);
 				} else if (action === 'delete') {
-					openDeleteUserModal(user);
+					// Быстрое подтверждение удаления без запроса причины
+					confirmAndDeleteUser(user);
 				}
 				menuDropdown.classList.remove('open');
 			});
@@ -296,6 +328,11 @@
 		detailLogin.textContent = selectedUser.login;
 		detailEmail.textContent = selectedUser.email;
 		detailProjectsCount.textContent = selectedUserProjects.length;
+
+		// Управление кнопками ролей
+		const isAdmin = selectedUser.role === 'admin';
+		if (detailGiveAdminBtn) detailGiveAdminBtn.style.display = isAdmin ? 'none' : 'inline-block';
+		if (detailRemoveAdminBtn) detailRemoveAdminBtn.style.display = isAdmin ? 'inline-block' : 'none';
 
 		// Проекты
 		renderProjectsGrid();
@@ -347,7 +384,8 @@
 				if (action === 'email') {
 					openEmailModal(selectedUser.email, `Проект "${project.name}"`);
 				} else if (action === 'delete') {
-					openDeleteProjectModal(project);
+					// Быстрое подтверждение удаления проекта без запроса причины
+					confirmAndDeleteProject(project);
 				}
 				menuDropdown.classList.remove('open');
 			});
@@ -365,6 +403,22 @@
 	 */
 	async function selectUser(user) {
 		selectedUser = user;
+		// Получить роль пользователя
+		try {
+			const resp = await fetch(`/api/users/${encodeURIComponent(user.id)}/info`);
+			if (resp.ok) {
+				const data = await resp.json();
+				selectedUser.role = data.role || 'user';
+			} else {
+				selectedUser.role = 'user'; // по умолчанию
+			}
+		} catch (e) {
+			console.warn('Failed to fetch user role', e);
+			selectedUser.role = 'user';
+		}
+		// Обновить роль в allUsers
+		const userInList = allUsers.find(u => u.id === user.id);
+		if (userInList) userInList.role = selectedUser.role;
 		selectedUserProjects = await fetchUserProjects(user.id);
 		
 		// Обновляем активный класс в списке
@@ -373,6 +427,61 @@
 		});
 
 		renderUserDetails();
+	}
+
+
+	/**
+	 * Подтверждение и удаление пользователя без запроса причины
+	 */
+	async function confirmAndDeleteUser(user) {
+		if(!user) return;
+		// Проверка: нельзя удалить свой аккаунт
+		if (user.id === currentLogin) {
+			alert('Нельзя удалить свой собственный аккаунт.');
+			return;
+		}
+		// Проверка: нельзя удалить последнего админа
+		const adminCount = allUsers.filter(u => u.role === 'admin').length;
+		if (user.role === 'admin' && adminCount <= 1) {
+			alert('Нельзя удалить последнего пользователя с ролью admin.');
+			return;
+		}
+		const ok = window.confirm(`Удалить пользователя "${user.login}"? Это действие необратимо.`);
+		if(!ok) return;
+		try{
+			await deleteUser(user.id, '');
+			// Обновляем список
+			allUsers = await fetchAllUsers();
+			// Если удалён выбранный пользователь — сбрасываем выбор
+			if(selectedUser && selectedUser.id === user.id){
+				selectedUser = null; selectedUserProjects = [];
+				renderUserDetails();
+			}
+			renderUsersList(allUsers);
+		}catch(e){
+			console.error('confirmAndDeleteUser failed', e);
+			alert('Не удалось удалить пользователя');
+		}
+	}
+
+	/**
+	 * Подтверждение и удаление проекта без запроса причины
+	 */
+	async function confirmAndDeleteProject(project) {
+		if(!project) return;
+		const ok = window.confirm(`Удалить проект "${project.name}"? Это действие необратимо.`);
+		if(!ok) return;
+		try{
+			await deleteProject(project.id, '');
+			if(selectedUser){
+				selectedUserProjects = await fetchUserProjects(selectedUser.id);
+				detailProjectsCount.textContent = selectedUserProjects.length;
+				renderProjectsGrid();
+			}
+		}catch(e){
+			console.error('confirmAndDeleteProject failed', e);
+			alert('Не удалось удалить проект');
+		}
 	}
 
 	/**
@@ -455,17 +564,88 @@
 	});
 
 	// Кнопки в панели деталей
-	detailEmailBtn.addEventListener('click', () => {
-		if (selectedUser) {
-			openEmailModal(selectedUser.email);
-		}
-	});
+	if(detailBackBtn){
+		detailBackBtn.addEventListener('click', () => {
+			// Возврат в личный кабинет
+			window.location.href = '/user';
+		});
+	}
+	if(detailBackBtnPlaceholder){
+		detailBackBtnPlaceholder.addEventListener('click', () => {
+			// Возврат в личный кабинет
+			window.location.href = '/user';
+		});
+	}
 
 	detailDeleteBtn.addEventListener('click', () => {
 		if (selectedUser) {
-			openDeleteUserModal(selectedUser);
+			confirmAndDeleteUser(selectedUser);
 		}
 	});
+
+	if(detailGiveAdminBtn){
+		detailGiveAdminBtn.addEventListener('click', async () => {
+			if (!selectedUser) return;
+			const ok = window.confirm(`Выдать роль admin пользователю "${selectedUser.login}"?`);
+			if (!ok) return;
+			try {
+				const resp = await fetch('/api/admin/user/upgradeAccount', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ login: selectedUser.login })
+				});
+				if (!resp.ok) {
+					console.warn('upgradeAccount failed', resp.status);
+					alert('Не удалось выдать роль admin');
+					return;
+				}
+				alert('Роль admin выдана');
+				// Обновить роль в selectedUser и allUsers
+				selectedUser.role = 'admin';
+				const userInList = allUsers.find(u => u.id === selectedUser.id);
+				if (userInList) userInList.role = 'admin';
+				renderUserDetails();
+			} catch (e) {
+				console.error('upgradeAccount error', e);
+				alert('Ошибка при выдаче роли');
+			}
+		});
+	}
+
+	if(detailRemoveAdminBtn){
+		detailRemoveAdminBtn.addEventListener('click', async () => {
+			if (!selectedUser) return;
+			// Проверка: нельзя снять роль admin с последнего админа
+			const adminCount = allUsers.filter(u => u.role === 'admin').length;
+			if (adminCount <= 1) {
+				alert('Нельзя снять роль admin с последнего пользователя с этой ролью.');
+				return;
+			}
+			const ok = window.confirm(`Снять роль admin у пользователя "${selectedUser.login}"?`);
+			if (!ok) return;
+			try {
+				const resp = await fetch('/api/admin/dropAdmin', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ login: selectedUser.login })
+				});
+				if (!resp.ok) {
+					console.warn('dropAdmin failed', resp.status);
+					alert('Не удалось снять роль admin');
+					return;
+				}
+				alert('Роль admin снята');
+				// Обновить роль в selectedUser и allUsers
+				selectedUser.role = 'user';
+				const userInList = allUsers.find(u => u.id === selectedUser.id);
+				if (userInList) userInList.role = 'user';
+				renderUserDetails();
+			} catch (e) {
+				console.error('dropAdmin error', e);
+				alert('Ошибка при снятии роли');
+			}
+		});
+	}
 
 	// Email Modal
 	emailCancel.addEventListener('click', closeEmailModal);

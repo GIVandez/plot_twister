@@ -72,7 +72,6 @@
     if(!form) return;
     const toggle = setupRules('rulesToggle','rulesPanel',form);
     hookToggle('togglePassword','#registerForm #password');
-    const email = qs('#email',form);
     const username = qs('#username',form);
     const password = qs('#password',form);
     const errorsEl = qs('#regErrors');
@@ -100,14 +99,6 @@
       else if(!hasLetter(p) || digitCount(p) < 4){ any=true; msgs.push('Слишком простой пароль. Пароль должен содержать минимум 4 цифры и 1 букву.'); markFieldError(qs('#passwordField'), true); showRules=true }
       else markFieldError(qs('#passwordField'), false);
 
-      // email check
-      const em = email.value.trim();
-      if(!validEmail(em)){ any=true; msgs.push('Неверный формат почты.'); markFieldError(qs('#emailField'), true); }
-      else{
-        if(em.toLowerCase() === 'taken@example.com'){ any=true; msgs.push('Эта почта уже зарегистрирована.'); markFieldError(qs('#emailField'), true); }
-        else markFieldError(qs('#emailField'), false);
-      }
-
       if(any){
         errorsEl.innerHTML = msgs.join('<br>');
         errorsEl.classList.add('show-error');
@@ -117,10 +108,53 @@
         return;
       }
 
-      // If no errors — proceed (here just show success)
+      // If no errors — proceed with registration
       errorsEl.classList.remove('show-error');
-      errorsEl.style.color = 'green'; errorsEl.textContent = 'Регистрация прошла (имитация).';
-      setTimeout(()=>{ errorsEl.classList.add('show-error'); }, 100);
+
+      const registerData = { login: u, password: p };
+
+      fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registerData)
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => { throw new Error(err.detail || 'Ошибка регистрации'); });
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Регистрация успешна, теперь автоматически входим
+        return fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login: u, password: p })
+        });
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => { throw new Error(err.detail || 'Ошибка входа после регистрации'); });
+        }
+        return response.json();
+      })
+      .then(loginData => {
+        // Сохраняем токен и логин в sessionStorage
+        sessionStorage.setItem('pt_access_token', loginData.access_token);
+        sessionStorage.setItem('pt_login', u);
+        // Также ставим cookie, чтобы сервер мог проверить роль при переходе на защищённые страницы
+        try{
+          document.cookie = 'pt_login=' + encodeURIComponent(u) + '; path=/';
+          document.cookie = 'pt_access_token=' + encodeURIComponent(loginData.access_token) + '; path=/';
+        }catch(e){ /* ignore */ }
+        // Перенаправляем на страницу личного кабинета
+        window.location.href = 'http://127.0.0.1:8000/user';
+      })
+      .catch(error => {
+        errorsEl.textContent = error.message;
+        errorsEl.style.color = '#C30000';
+        errorsEl.classList.add('show-error');
+      });
     });
     // clear errors while typing
     attachClearOnInput(form, (inp)=>{
@@ -170,6 +204,11 @@
         // Сохраняем токен и логин в sessionStorage
         sessionStorage.setItem('pt_access_token', data.access_token);
         sessionStorage.setItem('pt_login', u);
+        // Также ставим cookie, чтобы сервер мог проверить роль при переходе на защищённые страницы
+        try{
+          document.cookie = 'pt_login=' + encodeURIComponent(u) + '; path=/';
+          document.cookie = 'pt_access_token=' + encodeURIComponent(data.access_token) + '; path=/';
+        }catch(e){ /* ignore */ }
         // Перенаправляем на страницу личного кабинета
         window.location.href = 'http://127.0.0.1:8000/user';
       })

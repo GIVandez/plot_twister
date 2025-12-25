@@ -25,17 +25,8 @@ app = FastAPI()
 current_dir = Path(__file__).parent.parent
 static_path = current_dir / "static" / "account"
 
-# Монтируем папку стилей и скриптов
-app.mount("/account", StaticFiles(directory=f"{current_dir}/static/account"), name="account")
-app.mount("/admin", StaticFiles(directory=f"{current_dir}/static/admin"), name="admin")
-app.mount("/script", StaticFiles(directory=f"{current_dir}/static/script"), name="script")
-app.mount("/storyboard", StaticFiles(directory=f"{current_dir}/static/storyboard"), name="storyboard")
-app.mount("/auth", StaticFiles(directory=f"{current_dir}/static/auth"), name="auth")
-app.mount("/project", StaticFiles(directory=f"{current_dir}/static/project"), name="project")
-app.mount("/static", StaticFiles(directory=f"{current_dir}/static"), name="static")
-
-
-
+# Регистрируем маршруты API сначала, чтобы защищённые маршруты могли обрабатывать
+# специфичные пути (например, /admin/admin.html) до того, как StaticFiles возьмёт их.
 app.include_router(auth_router.router)
 app.include_router(admin_router.router)
 app.include_router(frame_router.router)
@@ -43,3 +34,12 @@ app.include_router(graphic_editor_router.router)
 app.include_router(page_router.router)
 app.include_router(project_router.router)
 app.include_router(user_router.router)
+
+# Монтируем папку стилей и скриптов (статические файлы)
+app.mount("/account", StaticFiles(directory=f"{current_dir}/static/account"), name="account")
+app.mount("/admin", StaticFiles(directory=f"{current_dir}/static/admin"), name="admin")
+app.mount("/script", StaticFiles(directory=f"{current_dir}/static/script"), name="script")
+app.mount("/storyboard", StaticFiles(directory=f"{current_dir}/static/storyboard"), name="storyboard")
+app.mount("/auth", StaticFiles(directory=f"{current_dir}/static/auth"), name="auth")
+app.mount("/project", StaticFiles(directory=f"{current_dir}/static/project"), name="project")
+app.mount("/static", StaticFiles(directory=f"{current_dir}/static"), name="static")

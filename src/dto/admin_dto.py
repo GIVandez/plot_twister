@@ -12,6 +12,7 @@ class DeleteAdminProjectRequest(BaseModel):
 
 class UserInfo(BaseModel):
     login: str
+    email: str | None = None
 
 
 class LoadUsersAccountsResponse(BaseModel):

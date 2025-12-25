@@ -13,7 +13,6 @@ class LoginResponse(BaseModel):
 class RegisterRequest(BaseModel):
     login: str
     password: str
-    email: EmailStr
 
 
 class LogoutRequest(BaseModel):
