@@ -27,6 +27,8 @@
   // ----- Ссылки на элементы DOM -----
   const avatarPreview = document.getElementById('avatarPreview'); // превью в настройках
   const userLogin = document.getElementById('userLogin');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const moderationBtn = document.getElementById('moderationBtn');
 
   const initialCreate = document.getElementById('initialCreate'); // центральная карточка создания (когда нет проектов)
   const projectsGrid = document.getElementById('projectsGrid'); // сетка проектов
@@ -259,8 +261,57 @@
   document.addEventListener('click', ()=>{ document.querySelectorAll('.proj-menu.open').forEach(n=>n.classList.remove('open')); });
   document.addEventListener('click', ()=>{ document.querySelectorAll('.proj-menu.open').forEach(n=>n.classList.remove('open')); });
 
+  // Logout handler: call server (best-effort), clear storage and redirect to login
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const confirmExit = confirm('Выйти из аккаунта?');
+      if (!confirmExit) return;
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: 0 })
+        });
+      } catch (err) {
+        // ignore network errors; proceed to clear storage
+        console.warn('Logout request failed', err);
+      }
+      // Clear session and local storage keys related to user
+      try { sessionStorage.removeItem('pt_access_token'); } catch(e){}
+      try { sessionStorage.removeItem('pt_login'); } catch(e){}
+      try { localStorage.removeItem('pt_login'); } catch(e){}
+      try { localStorage.removeItem('pt_email'); } catch(e){}
+      try { localStorage.removeItem('pt_avatar'); } catch(e){}
+      try { localStorage.removeItem('pt_projects'); } catch(e){}
+      // Redirect to login page
+      window.location.href = '/auth/login.html';
+    });
+  }
+
   // Инициализация: применяем данные пользователя и загружаем проекты с сервера
-  applyUser(); fetchUserProjects();
+  // check user role and show moderation button for admins
+  (async function checkRole(){
+    try{
+      const login = user.login;
+      if(!login) { applyUser(); fetchUserProjects(); return; }
+      const resp = await fetch('/api/users/' + encodeURIComponent(login) + '/info');
+      if(resp.ok){
+        const info = await resp.json();
+        if(info && info.role && info.role.toLowerCase() === 'admin'){
+          if(moderationBtn) moderationBtn.style.display = 'inline-flex';
+        }
+      }
+    }catch(e){ /* ignore */ }
+    applyUser(); fetchUserProjects();
+  })();
+
+  if(moderationBtn){
+    moderationBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      window.location.href = '/admin/admin.html';
+    });
+  }
 
   // Экспортим для отладки в консоль: window._pt
   window._pt = { projects, add(project){ projects.unshift(project); saveState(); renderProjects(); } };

@@ -20,12 +20,13 @@ class UserModel:
         user_info = self.db.read_user_info(username)
         if not user_info:
             return None
-        
-        # Возвращаем информацию в формате, указанном в архитектуре
+
+        # Возвращаем информацию о пользователе, включая роль
         return {
-            'username': user_info['username'],
-            'password': user_info['password'],
-            'email': user_info.get('email', '')  # email может отсутствовать в БД
+            'username': user_info.get('username'),
+            'password': user_info.get('password'),
+            'email': user_info.get('email', ''),  # email может отсутствовать в БД
+            'role': user_info.get('role', 'user')
         }
     
     def get_user_projects(self, username: str) -> List[str]:
