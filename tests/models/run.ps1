@@ -1,1 +1,1 @@
-D:/Code/five/plot_twister/.venv/Scripts/python.exe -m pytest tests/models -v
+pytest tests/models --maxfail=1 --disable-warnings

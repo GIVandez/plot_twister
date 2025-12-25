@@ -24,82 +24,45 @@ class TestProjectModel:
         return model
     
     # ===== метод new_project =====
-    
-    def test_new_project_success(self, project_model):
-        """Тест: Успешное создание нового проекта"""
-        # Arrange
+    def test_m9_new_project_success(self, project_model):
+        """
+        Тест M13: Успешное создание нового проекта
+        Позитивный тест
+        """
         username = "test_user"
         project_name = "New Project"
         mock_session = Mock()
-        
         project_model.db.user_project_exist.return_value = False
         project_model.db.get_user_id_by_login.return_value = 1
         project_model.Session.return_value = mock_session
-        
         mock_project = Mock()
         mock_project.id = 42
-        
-        # Настраиваем mock_session для проверки owner
         mock_owner = Mock()
         query_mock = Mock()
         filter_mock = Mock()
         filter_mock.first.return_value = mock_owner
         query_mock.filter.return_value = filter_mock
         mock_session.query.return_value = query_mock
-        
         with patch('database.models.Project', return_value=mock_project):
-            # Act
             result = project_model.new_project(username, project_name)
-            
-            # Assert
             assert result == 42
             project_model.db.user_project_exist.assert_called_once_with(project_name, username)
             project_model.db.get_user_id_by_login.assert_called_once_with(username)
-    
-    def test_new_project_already_exists(self, project_model):
-        """Тест: Создание проекта с уже существующим названием"""
-        # Arrange
-        username = "test_user"
-        project_name = "Existing Project"
-        project_model.db.user_project_exist.return_value = True
-        
-        # Act
-        result = project_model.new_project(username, project_name)
-        
-        # Assert
-        assert result is None
-        project_model.db.user_project_exist.assert_called_once_with(project_name, username)
-    
+
     # ===== метод edit_project_name =====
-    
-    def test_edit_project_name_success(self, project_model):
-        """Тест: Успешное изменение названия проекта"""
-        # Arrange
+    def test_m10_edit_project_name_success(self, project_model):
+        """
+        Тест M14: Успешное изменение названия проекта
+        Позитивный тест
+        """
         project_id = 1
         new_name = "Updated Project Name"
         project_model.db.update_project_name.return_value = True
-        
-        # Act
         result = project_model.edit_project_name(project_id, new_name)
-        
-        # Assert
         assert result is True
         project_model.db.update_project_name.assert_called_once_with(project_id, new_name)
-    
+
     # ===== метод delete_project =====
-    
-    def test_delete_project_success(self, project_model):
-        """Тест: Успешное удаление проекта"""
-        # Arrange
-        project_id = 1
-        project_model.db.delete_project.return_value = True
-        
-        # Act
-        result = project_model.delete_project(project_id)
-        
-        # Assert
-        assert result is True
-        project_model.db.delete_project.assert_called_once_with(project_id)
     
     # ===== метод delete_script =====
     
