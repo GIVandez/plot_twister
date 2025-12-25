@@ -31,3 +31,8 @@ class DeleteUserRequest(BaseModel):
 
 class DeleteProjectRequest(BaseModel):
     project_id: int
+
+
+class UserInfoResponse(BaseModel):
+    username: str
+    role: str

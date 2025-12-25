@@ -31,6 +31,11 @@
           }
           const data = await resp.json();
           const exists = Array.isArray(data.projects) && data.projects.some(p => Number(p.project_id) === Number(pid));
+          // Если проект найден в списке пользователя — подставим его название
+          if (Array.isArray(data.projects)){
+            const found = data.projects.find(p => Number(p.project_id) === Number(pid));
+            if(found && titleInput){ titleInput.value = found.project_name || titleInput.value; document.title = (found.project_name||'Проект') + ' — PlotTwister'; }
+          }
           if(!exists){
             alert('У вас нет доступа к этому проекту.');
             window.location.href = 'http://127.0.0.1:8000/user';

@@ -4,6 +4,7 @@ from dto.user_dto import (
     LoadUserInfoResponse, ProjectInfo, CreateProjectRequest, CreateProjectResponse,
     UpdateProjectInfoRequest, DeleteUserRequest, DeleteProjectRequest
 )
+from dto.user_dto import UserInfoResponse
 from user_models.user_model import UserModel
 from project_data_models.project_model import ProjectModel
 from database.repository import DatabaseRepository
@@ -91,6 +92,26 @@ async def create_project(request: CreateProjectRequest):
             )
         
         return CreateProjectResponse(project_id=project_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
+
+
+@router.get("/api/users/{user_name}/info", response_model=UserInfoResponse)
+async def get_user_info(user_name: str):
+    """Return basic user info including role"""
+    try:
+        user_info = user_model.get_user_info(user_name)
+        if not user_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Пользователь не найден"
+            )
+        return UserInfoResponse(username=user_info.get('username'), role=user_info.get('role', 'user'))
     except HTTPException:
         raise
     except Exception as e:
